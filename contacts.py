@@ -5,7 +5,7 @@
 
 ############################ CHANGE HISTORY ############################
 
-# VERSION : 0.3 Third Release 18-Jun-13 Jason Hou
+# VERSION : 0.3 Third Release 20-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
 # DESCRIPTION : 1. add more trace info
@@ -282,7 +282,42 @@ class contacts:
 			Exception('wipe failed')
 	
 	def addContact(self,name='',phone='',email='',address=''):
-		pass
+		#notice firstly call self.goEdit()
+		self.goEdit()
+		try:
+			offset = 0
+			if name:
+				view=self.getView('id/no_id/27',iD=True,dump=False)
+				view.type(name)
+				trace('type %s ' % name)
+				sleep(3)
+			if phone:
+				view=self.getView('id/no_id/46',iD=True,dump=False)
+				view.type(phone)
+				trace('type %s ' % phone)
+				sleep(3)
+			if email:
+				offset += 4 if phone else 0
+				view=self.getView('id/no_id/' + str(57 + offset), iD=True)
+				view.type(email)
+				trace('type %s ' % email)
+				sleep(3)
+			if address:
+				offset += 4 if phone else 0
+				view=self.getView('id/no_id/' + str(68 + offset), iD=True)
+				view.type(address)
+				trace('type %s ' % address)
+				sleep(3)
+			view=self.getView('Done',dump=False)
+			view.touch()
+			trace('Click Done')
+			sleep(2)
+			self.goList()
+			trace('return contact list view')
+			sleep(2)
+			
+		except Exception,e:
+			trace(str(e))
 			
 	def editDetails(self,phone=''):
 		pass
@@ -305,5 +340,9 @@ if __name__ == '__main__':
 	c.slide('right')
 	c.start()
 	trace('complete contacts activity starting')
-	c.stop()
+	c.addContact(name='jason',phone='123',email='a@b.c')
+	# c.editDetails(phone='456')
+	# c.search('jason')
+	# c.sort()
+	# c.favorite('jason')
 	trace('end testing')
