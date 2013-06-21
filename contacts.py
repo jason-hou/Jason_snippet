@@ -1,16 +1,27 @@
 # -*- coding: utf-8 -*-
 
 #Author: Jason Hou
-#Date: 2013/06/20
+
+#Date: 2013/06/21
 
 ############################ CHANGE HISTORY ############################
 
-# VERSION : 0.3 Third Release 18-Jun-13 Jason Hou
+# VERSION : 0.4 Fourth Release 21-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. fix the bug in wipe() method;
+#				2. update the start(), goEdit(), snapshot() method;
+#				3. extend getView() method to support findViewWithAttributeThatMatches();
+#				4. new add isEmpty(), getCounter() method;
+#				5. new add addContact() method demo
+#
+
+# VERSION : 0.3 Third Release 20-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
 # DESCRIPTION : 1. add more trace info
 #				2. update getView method, add 'dump' parameter 
-#				3. update goEdit method and return current contact counter
+#				3. update goEdit method and return current contacts counter
 #				4. new add stop, slide, goList and wipe method
 
 # VERSION : 0.2 Second Release 18-Jun-13 Jason Hou
@@ -29,9 +40,10 @@
 
 ############################ CHANGE HISTORY ############################
 
-__version__ = '0.3'
 
-import os,sys
+__version__ = '0.4'
+
+import os,sys,re
 try:
     for p in os.environ['PYTHONPATH'].split(';'):
        if not p in sys.path:
@@ -97,7 +109,7 @@ class contacts:
 			statusBarHeight = 25
 		self.snap_rect = 0, statusBarHeight, width, height - statusBarHeight
 		
-		#define the point used to slide screen
+		#define the point coordinate used to slide screen
 		self.left = (width/4, height/2)
 		self.right = (width/4*3, height/2)
 		self.up = (width/2, height/4)
@@ -112,14 +124,15 @@ class contacts:
 		'''
 		start the contacts activity and set the startStatus True if contacts is ready.
 		'''
-		trace('before start activity')
+		trace('Starting activity ...')
 		self.device.startActivity(component=componentName)
-		trace('contacts is starting, checking the status...')
 		sleep(2)
-		trace('before check status')
-		self.startStatus = self.isReady()
-		trace('after check status')
-	
+		self.startStatus = self.goList()
+		trace('Contacts is started, checking the contacts status...')
+		self.isReady()
+		sleep(2)
+		
+			
 	def stop(self):
 		'''
 		stop the contacts activity and set the startStatus False
@@ -152,9 +165,9 @@ class contacts:
 			}
 		self.device.drag(nav[str]['start'], nav[str]['end'], 0.1, 1)
 		trace('slide the screen from %s to %s ' % (nav[str]['start'],nav[str]['end']))
-		sleep(1)
+		sleep(2)
 		
-	def getView(self,str,cD=False,iD=False,dump=True):
+	def getView(self,str,cD=False,iD=False,dump=True,regex=False):
 		'''
 		get the view with the specified text, content description or viewId
 		@type str: str
@@ -172,24 +185,32 @@ class contacts:
 			trace('before dump')
 			self.vc.dump()
 			trace('after dump')
-
-		if not cD:
-			if not iD:
-				trace('return view with text: %s' % str)
-				return self.vc.findViewWithText(str)
-			else:
-				trace('return view with id: %s ' % str)
-				return self.vc.findViewById(str)
+		
+		if cD:
+			view=self.vc.findViewWithContentDescription(str)
+			trace('Query view with content description: %s, return is %s' % (str, view is not None))
+			return view
+		elif iD:
+			view=self.vc.findViewById(str)
+			trace('Query view by id: %s, return is %s' % (str, view is not None))
+			return view
+		elif regex:
+			view=self.vc.findViewWithAttributeThatMatches('text',re.compile(str))
+			trace('Query view that match attribute: %s, return is %s' % (str, view is not None))
+			return view
 		else:
-			trace('return view with content description: %s ' % str)
-			return self.vc.findViewWithContentDescription(str)
+			view=self.vc.findViewWithText(str)
+			trace('Query view with text: %s, return is %s ' % (str, view is not None))
+			return view
 			
 	def isReady(self):
 		'''
 		check whether the contacts is ready.
+        
+        @return: True
 		'''
 		while True:
-			view=self.getView('Contact list is being updated to reflect the change of language.')
+			view=self.getView('Contacts list is being updated to reflect the change of language.')
 			if not view:
 				trace('Contacts is ready')
 				break
@@ -198,51 +219,75 @@ class contacts:
 				sleep(2)
 		return True
 	
+	def isEmpty(self):
+		'''
+		check whether the contacts is empty
+
+		@return: True or False
+		'''
+		self.check()
+		view=self.getView('No contacts.')
+		if view:
+			trace('Contacts list is empty')
+			return True
+		else:
+			trace('Contacts list is not empty')
+			return False
+	def getCounter(self):
+		'''
+		get the contacts counter
+		
+		@return: the current contacts counter
+		'''
+		if self.isEmpty():
+			self.contactCounter=0
+		else:
+			self.contactCounter = int(self.getView('id/no_id/21',iD=True,dump=False).getText().split()[0])
+		trace('current contacts counter is %d' % self.contactCounter)
+		return self.contactCounter
+            
 	def goList(self):
 		'''
 		check whether the screen is in contacts list view, if not, go list view via pressing back key
 		
-		@return: the search Text View
+		@return: True
 		'''
-		self.check()
 		while True:
-			view=self.getView("Search",cD=True)
+			view=self.getView("All contacts",cD=True)
 			if not view:
 				self.back()
-				sleep(2)
+				sleep(3)
 			else:
+				if not view.isSelected():
+					trace('Touch "All contacts"')
+					view.touch()
 				break
-		return view
+		trace('Goto contacts list view')
+		return True
 		
 	def goEdit(self):
 		'''
-		check whether the contact is empty, then select adding and go to edit view.
+		check whether the contacts is empty, then select adding and go to edit view.
 		
-		@return: current contacts counter
+		@return: True
 		'''
 		self.check()
-		view=self.getView('Create a new contact',dump=False)
+		view=self.getView('Add Contact',cD=True,dump=False)
 		if view:
-			self.contactCounter = 0
+			trace('Touch "Add Contact"')
 			view.touch()
-			trace('Click "Create a new contact"')
-			sleep(3) 
-			view=self.getView('Keep local')
-			if view:
-				view.touch()
-				trace('Select "Keep local"')
-				sleep(2)
 		else:
-			self.contactCounter = int(self.getView('id/no_id/21',iD=True,dump=False).getText().split(' ')[0])
-			#get the current contact counter
-			view=self.getView('Add Contact',cD=True,dump=False)
-			view.touch()
-			trace('Click "Add Contact"')
-			sleep(3)
-		trace('current contacts counter is %d' % self.contactCounter)
-		self.vc.dump()
-		return self.contactCounter
-		
+			view=self.getView('Create a new contact',dump=False)
+			if view:
+				trace('Touch "Create a new contact"')
+				view.touch()
+				sleep(4)
+				view=self.getView('Keep local')
+				if view:
+					trace('Select "Keep local"')
+					view.touch()
+		return True
+				
 	def check(self):
 		'''
 		check whether the contacts is started before other operation about contacts
@@ -263,11 +308,13 @@ class contacts:
 		@return: snapshot object
 		'''
 		snapName = title + '.png' 
-		snapFile = logPath + '\\' + snapName
+		snapFolder = 'snapshot'
+		os.system('if not exist %s\\%s mkdir %s\\%s' % (logPath, snapFolder, logPath, snapFolder))
+		snapFile = logPath + '\\' + snapFolder + '\\' + snapName
 		result = self.device.takeSnapshot().getSubImage(self.snap_rect)
 		trace('take snapshot without the statusbar')
 		result.writeToFile(snapFile,'png')
-		trace('save the snapshot to file: %s ' % snapfile)
+		trace('save the snapshot to file: %s ' % snapFile)
 		return result
 	
 	def wipe(self,view):
@@ -276,13 +323,42 @@ class contacts:
 		'''
 		try:
 			self.device.drag(view.getXY(),view.getXY(),1,1)
+			trace('wipe text: %s' % str(view.getText()))
 			self.device.press('KEYCODE_DEL','DOWN_AND_UP')
-			trace('wipe text: %s ' % view.getText())
 		except:
 			Exception('wipe failed')
 	
 	def addContact(self,name='',phone='',email='',address=''):
-		pass
+		self.goEdit()
+		try:
+			offset = 0
+			if name:
+				view=self.getView('id/no_id/27',iD=True)
+				trace('type %s' % name)
+				view.type(name)
+			if phone:
+				view=self.getView('id/no_id/46',iD=True,dump=False)
+				trace('type %s' % phone)
+				view.type(phone)
+				offset += 4
+			if email:
+				view=self.getView('id/no_id/' + str(57 + offset), iD=True)
+				trace('type %s' % email)
+				view.type(email)
+				offset += 4
+			if address:
+				view=self.getView('id/no_id/' + str(68 + offset), iD=True)
+				trace('type %s' % address)
+				view.type(address)
+			view=self.getView('Done',dump=False)
+			view.touch()
+			trace('Touch Done')
+			sleep(3)
+						
+		except Exception,e:
+			trace(str(e))
+		finally:
+			self.goList()
 			
 	def editDetails(self,phone=''):
 		pass
@@ -298,12 +374,29 @@ class contacts:
 		
 if __name__ == '__main__':
 	device=MonkeyRunner.waitForConnection()
+	trace('=' * 80)
 	trace('start testing...')
 	c=contacts(device)
 	trace('complete init')
-	c.slide('left')
-	c.slide('right')
 	c.start()
 	trace('complete contacts activity starting')
-	c.stop()
+	############################ add contact case Beginning ############################
+	for i in range(3):
+		try:	
+			before=c.getCounter()
+			c.addContact(name='jason',phone='123',email='a@b.c',address='softwarepark')
+			after=c.getCounter()
+			if after - before == 1:
+				result='passed'
+			else:
+				result='failed'
+		except	Exception,e:
+			result='unknown'
+			details=str(e)
+		finally:
+			trace("*" * 20 + " case %d is %s " % (i + 1, result) + "*" * 20)
+			if 'unknown' == result:
+				trace('Exception details: ' + details)
+			sleep(5)
 	trace('end testing')
+	############################ add contact case Finished ############################
