@@ -6,6 +6,12 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 0.7 Seventh Release 24-Jun-13 Faure Zhang
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION :	1. new add delete() method
+#				2. rewrite getCounter() method	
+
 # VERSION : 0.6 Sixth Release 24-Jun-13 Donner Li
 # REASON : Update implementation
 # REFERENCE : 
@@ -250,10 +256,14 @@ class contacts:
 		
 		@return: the current contacts counter
 		'''
+		self.goList(self)
 		if self.isEmpty():
 			self.contactCounter=0
 		else:
-			self.contactCounter = int(self.getView('id/no_id/21',iD=True,dump=False).getText().split()[0])
+			while not self.getView('\d+ contacts?',regex=True):
+				self.slide('down')
+				sleep(3)
+			self.contactCounter = int(self.getView('\d+ contacts?',regex=True,dump=False).getText().split()[0])
 		trace('current contacts counter is %d' % self.contactCounter)
 		return self.contactCounter
             
@@ -437,7 +447,59 @@ class contacts:
 		
 	def favorite(self,name=''):
 		pass
+
+	def delete(self,kwd = ''):
+        
+		'''delete one contact
+		@type kwd: string
+		@param kwd: keyword which contact to be delete, if none,delete first contact
+		@return: 
+		'''
+		#self.start()
+		#trace('launch on contact application')
+        
+		self.goList()
+		if self.isEmpty():
+			trace('Could not find any contact data,no record!')
+			raise SyntaxError('Could not find any contact data,no record!')
+
+		if not kwd :
+			# keyword is empty,delete first contact
+			trace('keyword is none, first contact with be delete')
+			find = self.getView('id/no_id/27',iD=True,dump=False)
+			#if find != None:
+		else :
+			# keyword is not none
+			# search specifying contact by keyword
+			find = self.search(kwd)
+			trace('')
+			# if find != None:
+		if not find :
+			trace('Could not find the contact : ' + kwd)
+			raise SyntaxError('Could not find the contact : ' + kwd)
+		else:
+			# delete operate 
+			find.touch()
+			sleep(3)
+			trace('show contact detail information')
+			sleep(1)
+			self.device.press('KEYCODE_MENU')
+			sleep(4)
+			delete_menu = self.getView('Delete')
+			trace('choose delete contact')
+			delete_menu.touch()
+			
+			# confirm delete operate
+			ok_menu = self.getView('OK')
+			ok_menu.touch()
+			sleep(3)
+			
+		# if current activity is not Main Activity back to Main Activity
+		self.goList()
 		
+		if 0 == self.getCounter() :
+			trace(' all contacts has been deleted, no record!')
+		trace('operation success.')
 if __name__ == '__main__':
 	device=MonkeyRunner.waitForConnection()
 	trace('=' * 80)
