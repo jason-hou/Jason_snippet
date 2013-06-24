@@ -6,6 +6,12 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 0.8 Seventh Release 24-Jun-13 Glen Fan
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION :	1. new add goEditExistContact(), slideByView(), editCompany(),\
+#				editAnotherField(),editDetails() method
+
 # VERSION : 0.7 Seventh Release 24-Jun-13 Faure Zhang
 # REASON : Update implementation
 # REFERENCE : 
@@ -58,15 +64,15 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '0.4'
+__version__ = '0.7'
 
 import os,sys,re
 try:
-    for p in os.environ['PYTHONPATH'].split(';'):
-       if not p in sys.path:
-          sys.path.append(p)
+	for p in os.environ['PYTHONPATH'].split(';'):
+		if not p in sys.path:
+			sys.path.append(p)
 except:
-    pass
+	pass
 
 from com.android.monkeyrunner import MonkeyRunner,MonkeyDevice,MonkeyImage
 from com.dtmilano.android.viewclient import ViewClient
@@ -100,9 +106,9 @@ class contacts:
 		constructor
 		
 		@type device: MonkeyDevice
-        @param device: The device or emulator connected
+		@param device: The device or emulator connected
 		@type devID: str
-        @param serialno: the serial number of the device or emulator to connect to
+		@param serialno: the serial number of the device or emulator to connect to
 		@type sample: boolean
 		@param sample: whether take snapshot as an sampling
 		'''
@@ -223,8 +229,7 @@ class contacts:
 	def isReady(self):
 		'''
 		check whether the contacts is ready.
-        
-        @return: True
+		@return: True
 		'''
 		while True:
 			view=self.getView('Contacts list is being updated to reflect the change of language.')
@@ -266,7 +271,7 @@ class contacts:
 			self.contactCounter = int(self.getView('\d+ contacts?',regex=True,dump=False).getText().split()[0])
 		trace('current contacts counter is %d' % self.contactCounter)
 		return self.contactCounter
-            
+
 	def goList(self):
 		'''
 		check whether the screen is in contacts list view, if not, go list view via pressing back key
@@ -381,10 +386,109 @@ class contacts:
 		finally:
 			sleep(5)
 			self.goList()
-			
-	def editDetails(self,phone=''):
-		pass
-	
+
+	def goEditExistContact(self,str):
+		trace('Search a contact to edit')
+		view=self.search(str)
+		if not view:
+			raise SyntaxError('No '+str+' contact to edit')
+		view.touch()
+		sleep(4)
+		self.device.press('KEYCODE_MENU')
+		sleep(2)
+		self.device.press('KEYCODE_DPAD_DOWN')
+		sleep(1)
+		self.device.press('KEYCODE_ENTER')
+		sleep(3)	
+
+	def slideByView(self,view):
+		trace('SlideByView')
+		startp=(view.getX()+view.getWidth()-10,view.getY()+view.getHeight()-10)
+		endpoint=(view.getX()+view.getWidth()-10,view.getY()+10)
+		self.device.drag(startp,endpoint,0.5,1)   
+		sleep(1)
+
+	def editCompany(self,company,action):
+		view=self.getView('Add organization')
+		if view:
+			trace('Step: add a organization info')
+			view.touch()
+			sleep(1)
+			trace('add the company info')
+			self.device.type(company)
+			sleep(1)
+			view=self.getView('Title')
+			trace("add a company's Title")
+			view.type(company)
+		else:
+			trace('Step: Edit the organization info')  
+			view=self.getView('id/no_id/42',iD=True)
+			self.wipe(view)
+			trace('Edit the company info')
+			self.device.type(company)
+			view=self.getView('id/no_id/43',iD=True)
+			trace("Edit the company's Title")
+			self.wipe(view)
+			self.device.type(company)
+
+	def editAnotherField(self,fieldName,content,action):
+		find=1
+		view=self.getView(fieldName)
+		view2=self.getView('Add another field')
+		while not view:
+			self.device.drag((440,760),(440,160),2,5)
+			sleep(1)
+			view=self.getView(fieldName)
+			view2=self.getView('Add another field')
+			if view2:
+				if not view:
+					find=0
+					break
+		if 0==find:
+			trace('Step: add field '+fieldName+' info')
+			view2.touch()
+			trace('Click Add another field')
+			sleep(2)
+			view=self.getView(fieldName)
+			if not view:
+				view2=self.getView('id/no_id/2',iD=True)
+				self.slideByView(view2)
+				view=self.getView(fieldName)
+			view.touch()
+			sleep(1)
+			#view=self.getView(fieldName)
+			#view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
+			#view2.type(content)
+			sleep(1)
+			self.device.type(content)
+			sleep(2)
+		else:
+			trace('Step: Edit field '+fieldName+' info')
+			view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
+			self.wipe(view2)
+			sleep(1)
+			view2.type(content)
+			sleep(1)
+			   
+	def editDetails(self,nameOrNumber,company='',website='',nickname='',notes='',action='add'):
+		'''
+		
+		'''
+		self.goEditExistContact(nameOrNumber)
+		if not company=='':
+			self.editCompany(company,action)
+		if not website=='':
+			self.editAnotherField('Website',website,action)
+		if not nickname=='':
+			self.editAnotherField('Nickname',nickname,action)        
+		if not website=='':
+			self.editAnotherField('Notes',notes,action)          
+		view=self.getView('Done')
+		trace('Click Done')
+		view.touch()
+		sleep(3)
+		self.goList()
+
 	def search(self,str):
 		'''
 		@type str: str
@@ -399,7 +503,6 @@ class contacts:
 		sleep(2)
 		self.device.type(str)
 		trace("search keyword is: "+str)
-
 		#the id of 1st search result is always 28
 		if self.getView("No contacts"):
 			trace("No contact searched")
@@ -414,7 +517,7 @@ class contacts:
 		@param sortByFirstName: whether sort contact name by first name  
 		@type viewAsFirstNameFirst: boolean
 		@param viewAsFirstNameFirst: whether view contact by first name first              
-		'''   
+		'''
 		self.goList()              
 		
 		trace("start sorting...")
@@ -434,7 +537,7 @@ class contacts:
 				self.getView("First name first").touch()
 			else:
 				self.getView("Last name first").touch()
-		else:                        
+		else:
 			self.getView("Last name").touch()
 			sleep(2)
 			self.getView("View contact names as").touch()
@@ -457,7 +560,7 @@ class contacts:
 		'''
 		#self.start()
 		#trace('launch on contact application')
-        
+
 		self.goList()
 		if self.isEmpty():
 			trace('Could not find any contact data,no record!')
