@@ -2,9 +2,15 @@
 
 #Author: Jason Hou
 
-#Date: 2013/06/21
+#Date: 2013/06/24
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 0.5 Fiveth Release 24-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION :	1. rewrite goEdit() method
+#				2. fix 'Content is not allowed in prolog' bug
 
 # VERSION : 0.4 Fourth Release 21-Jun-13 Jason Hou
 # REASON : Update implementation
@@ -272,22 +278,30 @@ class contacts:
 		@return: True
 		'''
 		self.check()
-		view=self.getView('Add Contact',cD=True,dump=False)
-		if view:
+		try:
+			self.getView('Add Contact',cD=True,dump=False).touch()
+
 			trace('Touch "Add Contact"')
-			view.touch()
-		else:
-			view=self.getView('Create a new contact',dump=False)
-			if view:
-				trace('Touch "Create a new contact"')
-				view.touch()
-				sleep(4)
-				view=self.getView('Keep local')
-				if view:
-					trace('Select "Keep local"')
-					view.touch()
-		return True
-				
+			sleep(5)
+			return True
+		except AttributeError: pass
+		try:
+
+
+			self.getView('Create a new contact',dump=False).touch()
+
+			trace('Touch "Create a new contact"')
+
+			sleep(5)
+			self.getView('Keep local').touch()
+
+			trace('Select "Keep local"')
+			sleep(5)
+
+			return True
+		except AttributeError: pass
+						
+
 	def check(self):
 		'''
 		check whether the contacts is started before other operation about contacts
@@ -336,28 +350,29 @@ class contacts:
 				view=self.getView('id/no_id/27',iD=True)
 				trace('type %s' % name)
 				view.type(name)
+				view.touch()
 			if phone:
 				view=self.getView('id/no_id/46',iD=True,dump=False)
 				trace('type %s' % phone)
 				view.type(phone)
 				offset += 4
+				sleep(2)
 			if email:
 				view=self.getView('id/no_id/' + str(57 + offset), iD=True)
 				trace('type %s' % email)
 				view.type(email)
 				offset += 4
+				sleep(2)
 			if address:
 				view=self.getView('id/no_id/' + str(68 + offset), iD=True)
 				trace('type %s' % address)
 				view.type(address)
+				sleep(2)
 			view=self.getView('Done',dump=False)
 			view.touch()
-			trace('Touch Done')
-			sleep(3)
-						
-		except Exception,e:
-			trace(str(e))
+			trace('Touch Done')						
 		finally:
+			sleep(5)
 			self.goList()
 			
 	def editDetails(self,phone=''):
@@ -381,22 +396,23 @@ if __name__ == '__main__':
 	c.start()
 	trace('complete contacts activity starting')
 	############################ add contact case Beginning ############################
-	for i in range(3):
+	for i in range(5):
+		result='failed'
 		try:	
 			before=c.getCounter()
 			c.addContact(name='jason',phone='123',email='a@b.c',address='softwarepark')
 			after=c.getCounter()
 			if after - before == 1:
 				result='passed'
-			else:
-				result='failed'
-		except	Exception,e:
-			result='unknown'
-			details=str(e)
+
+
+		# except	Exception,e:
+			# result='unknown'
+			# details=str(e)
 		finally:
 			trace("*" * 20 + " case %d is %s " % (i + 1, result) + "*" * 20)
-			if 'unknown' == result:
-				trace('Exception details: ' + details)
+			# if 'unknown' == result:
+				# trace('Exception details: ' + details)
 			sleep(5)
 	trace('end testing')
 	############################ add contact case Finished ############################
