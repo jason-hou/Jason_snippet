@@ -6,6 +6,11 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 0.6 Sixth Release 24-Jun-13 Donner Li
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION :	1. new add search(), sortAndViewAs() method
+
 # VERSION : 0.5 Fiveth Release 24-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
@@ -280,28 +285,20 @@ class contacts:
 		self.check()
 		try:
 			self.getView('Add Contact',cD=True,dump=False).touch()
-
 			trace('Touch "Add Contact"')
 			sleep(5)
 			return True
 		except AttributeError: pass
 		try:
-
-
 			self.getView('Create a new contact',dump=False).touch()
-
 			trace('Touch "Create a new contact"')
-
 			sleep(5)
 			self.getView('Keep local').touch()
-
 			trace('Select "Keep local"')
 			sleep(5)
-
 			return True
 		except AttributeError: pass
 						
-
 	def check(self):
 		'''
 		check whether the contacts is started before other operation about contacts
@@ -379,10 +376,64 @@ class contacts:
 		pass
 	
 	def search(self,str):
-		pass
-	
-	def sort(self):
-		pass
+		'''
+		@type str: str
+		@param str: specify the search keyword
+		##@return: the view of search result if search result is not null, else return None
+		'''		
+		trace("start searching...")
+		self.goList()
+		
+		searchView=self.getView("Search",True)
+		searchView.touch()
+		sleep(2)
+		self.device.type(str)
+		trace("search keyword is: "+str)
+
+		#the id of 1st search result is always 28
+		if self.getView("No contacts"):
+			trace("No contact searched")
+			return None
+		else:
+			return self.getView("id/no_id/28",iD=True)  
+		
+	def sortAndViewAs(self, sortByFirstName=True, viewAsFirstNameFirst=True):
+		'''
+		sort contact name
+		@type sortByFirstName: boolean
+		@param sortByFirstName: whether sort contact name by first name  
+		@type viewAsFirstNameFirst: boolean
+		@param viewAsFirstNameFirst: whether view contact by first name first              
+		'''   
+		self.goList()              
+		
+		trace("start sorting...")
+		self.device.press("KEYCODE_MENU","DOWN_AND_UP")                
+		settingsView=self.getView("Settings")
+		settingsView.touch()
+		sleep(2)
+		
+		self.getView("Sort list by").touch()
+		
+		if sortByFirstName:                        
+			self.getView("First name").touch()
+			sleep(2)
+			self.getView("View contact names as").touch()
+			sleep(2)
+			if viewAsFirstNameFirst:
+				self.getView("First name first").touch()
+			else:
+				self.getView("Last name first").touch()
+		else:                        
+			self.getView("Last name").touch()
+			sleep(2)
+			self.getView("View contact names as").touch()
+			sleep(2)
+			if viewAsFirstNameFirst:
+				self.getView("First name first").touch()
+			else:
+				self.getView("Last name first").touch()
+		sleep(2)       
 		
 	def favorite(self,name=''):
 		pass
@@ -404,8 +455,6 @@ if __name__ == '__main__':
 			after=c.getCounter()
 			if after - before == 1:
 				result='passed'
-
-
 		# except	Exception,e:
 			# result='unknown'
 			# details=str(e)
