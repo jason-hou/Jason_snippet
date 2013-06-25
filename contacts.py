@@ -6,6 +6,11 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 0.9 Ninth Release 25-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. new add favor() method
+
 # VERSION : 0.8 Seventh Release 24-Jun-13 Glen Fan
 # REASON : Update implementation
 # REFERENCE : 
@@ -64,7 +69,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '0.7'
+__version__ = '0.9'
 
 import os,sys,re
 try:
@@ -261,7 +266,7 @@ class contacts:
 		
 		@return: the current contacts counter
 		'''
-		self.goList(self)
+		self.goList()
 		if self.isEmpty():
 			self.contactCounter=0
 		else:
@@ -548,9 +553,32 @@ class contacts:
 				self.getView("Last name first").touch()
 		sleep(2)       
 		
-	def favorite(self,name=''):
-		pass
-
+	def favor(self,str,favor=True):
+		'''
+		add or cancel contact to favorites
+		
+		@type str: str
+		@param str: specify the search string
+		@type favor: boolean
+		@param favor: add if True
+		'''
+		try:
+			self.search(str).touch()
+			sleep(3)
+		except AttributeError:
+			trace('no matched contact found, operation failed!')
+			self.goList()
+			return False
+		aim, action = ('Add to favorites', 'add') if favor else ('Remove from favorites', 'remov')
+		try:
+			self.getView(aim, cD=True).touch()
+			trace('%s successfully' % aim)
+		except AttributeError:
+			trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
+		sleep(3)
+		self.goList()
+		return True
+		
 	def delete(self,kwd = ''):
         
 		'''delete one contact
@@ -612,6 +640,8 @@ if __name__ == '__main__':
 	c.start()
 	trace('complete contacts activity starting')
 	############################ add contact case Beginning ############################
+	c.favor('jason1')
+	'''
 	for i in range(5):
 		result='failed'
 		try:	
@@ -628,5 +658,10 @@ if __name__ == '__main__':
 			# if 'unknown' == result:
 				# trace('Exception details: ' + details)
 			sleep(5)
+	'''
+	c.favor('jason')
+	c.favor('jason')
+	c.favor('jason',False)
+	c.favor('jason',False)
 	trace('end testing')
 	############################ add contact case Finished ############################
