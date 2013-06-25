@@ -6,6 +6,11 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 1.0 Tenth Release 25-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. update slide() method to support sliding in specified view
+
 # VERSION : 0.9 Ninth Release 25-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
@@ -69,7 +74,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '0.9'
+__version__ = '1.0'
 
 import os,sys,re
 try:
@@ -176,20 +181,33 @@ class contacts:
 		self.device.press('KEYCODE_BACK','DOWN_AND_UP')
 		trace('press back')
 		
-	def slide(self,str):
+	def slide(self,str,view=None):
 		'''
 		slide the screen
 		
 		@type: str
 		@param: 'left','right','up','down'
+		@type view: 
+		@param view: specify the view, default to None  
 		'''
 		if str not in ['left','right','up','down']:
 			raise SyntaxError("wrong parameter: choose from 'left','right','up' or 'down'")
+		try:
+			cX,cY = view.getCenter()
+			width = view.getWidth()
+			height = view.getHeight()
+			cL = cX - width/4, cY
+			cR = cX + width/4, cY
+			cU = cX, cY - height/4
+			cD = cX, cY + height/4
+		except AttributeError:
+			pass
+		(left, right, up, down) = (cL, cR, cU, cD) if view else (self.left, self.right, self.up, self.down)
 		nav = {
-			'left':{'start':self.right,'end':self.left},
-			'right':{'start':self.left,'end':self.right},
-			'up':{'start':self.down,'end':self.up},
-			'down':{'start':self.up,'end':self.down}
+			'left':{'start':right,'end':left},
+			'right':{'start':left,'end':right},
+			'up':{'start':down,'end':up},
+			'down':{'start':up,'end':down}
 			}
 		self.device.drag(nav[str]['start'], nav[str]['end'], 0.1, 1)
 		trace('slide the screen from %s to %s ' % (nav[str]['start'],nav[str]['end']))
@@ -406,13 +424,6 @@ class contacts:
 		self.device.press('KEYCODE_ENTER')
 		sleep(3)	
 
-	def slideByView(self,view):
-		trace('SlideByView')
-		startp=(view.getX()+view.getWidth()-10,view.getY()+view.getHeight()-10)
-		endpoint=(view.getX()+view.getWidth()-10,view.getY()+10)
-		self.device.drag(startp,endpoint,0.5,1)   
-		sleep(1)
-
 	def editCompany(self,company,action):
 		view=self.getView('Add organization')
 		if view:
@@ -457,7 +468,7 @@ class contacts:
 			view=self.getView(fieldName)
 			if not view:
 				view2=self.getView('id/no_id/2',iD=True)
-				self.slideByView(view2)
+				self.slide('up',view2)
 				view=self.getView(fieldName)
 			view.touch()
 			sleep(1)
