@@ -6,6 +6,11 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 1.1 Eleventh Release 26-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. new add meun() and scroll() method
+
 # VERSION : 1.0 Tenth Release 25-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
@@ -74,7 +79,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.0'
+__version__ = '1.1'
 
 import os,sys,re
 try:
@@ -174,6 +179,27 @@ class contacts:
 		trace('force stop contacts package %s' % package)
 		self.startStatus = False
 	
+	def menu(self):
+		'''
+		press menu
+		'''
+		self.device.press('KEYCODE_MENU','DOWN_AND_UP')
+		trace('press menu')
+		
+	def scroll(self,down=True,times=1):
+		'''
+		scoll up or down for some times
+		
+		@type down: boolead
+		@param down: scroll down if True or scroll up
+		@type times: int
+		@param times: how many times to scroll
+		'''
+		keycode = 'KEYCODE_DPAD_DOWN' if down else 'KEYCODE_DPAD_UP'
+		for i in range(times):
+			self.device.press(keycode,'DOWN_AND_UP')
+			trace('scroll %s' % str)
+		
 	def back(self):
 		'''
 		press back
