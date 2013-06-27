@@ -6,6 +6,12 @@
 
 ############################ CHANGE HISTORY ############################
 
+# VERSION : 1.2 Twelveth Release 27-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. fix bug cannot slide to left or right in list view
+#				2. update scroll() method to support touching highlight item
+
 # VERSION : 1.1 Eleventh Release 26-Jun-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
@@ -79,7 +85,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 import os,sys,re
 try:
@@ -188,7 +194,7 @@ class contacts:
 		
 	def scroll(self,down=True,times=1):
 		'''
-		scoll up or down for some times
+		scoll up or down for some times then touch the highlight submenu item
 		
 		@type down: boolead
 		@param down: scroll down if True or scroll up
@@ -199,6 +205,8 @@ class contacts:
 		for i in range(times):
 			self.device.press(keycode,'DOWN_AND_UP')
 			trace('scroll %s' % str)
+		self.device.press('KEYCODE_ENTER','DOWN_AND_UP')
+		
 		
 	def back(self):
 		'''
@@ -235,7 +243,7 @@ class contacts:
 			'up':{'start':down,'end':up},
 			'down':{'start':up,'end':down}
 			}
-		self.device.drag(nav[str]['start'], nav[str]['end'], 0.1, 1)
+		self.device.drag(nav[str]['start'], nav[str]['end'], 0.1, 10)
 		trace('slide the screen from %s to %s ' % (nav[str]['start'],nav[str]['end']))
 		sleep(2)
 		
