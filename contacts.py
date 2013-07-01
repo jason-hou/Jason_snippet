@@ -2,9 +2,15 @@
 
 #Author: Jason Hou
 
-#Date: 2013/06/24
+#Date: 2013/06/29
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.3 Thirteenth Release 29-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. fix bug scroll trace info wrong;
+#				2. merge the search and sortAndViewAs method refactorred by Donner
 
 # VERSION : 1.2 Twelveth Release 27-Jun-13 Jason Hou
 # REASON : Update implementation
@@ -85,7 +91,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.2'
+__version__ = '1.3'
 
 import os,sys,re
 try:
@@ -204,9 +210,9 @@ class contacts:
 		keycode = 'KEYCODE_DPAD_DOWN' if down else 'KEYCODE_DPAD_UP'
 		for i in range(times):
 			self.device.press(keycode,'DOWN_AND_UP')
-			trace('scroll %s' % str)
+			trace('scroll %s' % keycode[13:].lower())
 		self.device.press('KEYCODE_ENTER','DOWN_AND_UP')
-		
+		trace('press Enter')
 		
 	def back(self):
 		'''
@@ -541,62 +547,50 @@ class contacts:
 
 	def search(self,str):
 		'''
+		search contact by keyword
 		@type str: str
 		@param str: specify the search keyword
-		##@return: the view of search result if search result is not null, else return None
-		'''		
+		@return: the view of search result if search result is not null, else return False
+		'''
 		trace("start searching...")
-		self.goList()
-		
-		searchView=self.getView("Search",True)
-		searchView.touch()
-		sleep(2)
-		self.device.type(str)
-		trace("search keyword is: "+str)
+		try:				
+			self.getView("Search",True).touch()
+			sleep(2)
+			self.device.type(str)
+			trace("search keyword is: "+str)
+		except AttributeError:
+			if self.isEmpty():
+				trace("No contacts exist")
+			else:
+				trace("No contacts searched")
+			return False
 		#the id of 1st search result is always 28
-		if self.getView("No contacts"):
-			trace("No contact searched")
-			return None
-		else:
-			return self.getView("id/no_id/28",iD=True)  
+		return self.getView("id/no_id/28",iD=True)
 		
-	def sortAndViewAs(self, sortByFirstName=True, viewAsFirstNameFirst=True):
+	def sortAndViewAs(self, sort=True, first=True):
 		'''
-		sort contact name
-		@type sortByFirstName: boolean
-		@param sortByFirstName: whether sort contact name by first name  
-		@type viewAsFirstNameFirst: boolean
-		@param viewAsFirstNameFirst: whether view contact by first name first              
+		sort and view contact name
+		@type sort: boolean
+		@param sort: whether sort contact name or view contact  
+		@type first: boolean
+		@param first: whether sort and view contact by first name or last name   
+		@return: boolean           
 		'''
-		self.goList()              
-		
 		trace("start sorting...")
-		self.device.press("KEYCODE_MENU","DOWN_AND_UP")                
-		settingsView=self.getView("Settings")
-		settingsView.touch()
-		sleep(2)
-		
-		self.getView("Sort list by").touch()
-		
-		if sortByFirstName:                        
-			self.getView("First name").touch()
-			sleep(2)
-			self.getView("View contact names as").touch()
-			sleep(2)
-			if viewAsFirstNameFirst:
-				self.getView("First name first").touch()
-			else:
-				self.getView("Last name first").touch()
-		else:
-			self.getView("Last name").touch()
-			sleep(2)
-			self.getView("View contact names as").touch()
-			sleep(2)
-			if viewAsFirstNameFirst:
-				self.getView("First name first").touch()
-			else:
-				self.getView("Last name first").touch()
-		sleep(2)       
+		self.menu()                
+		self.scroll(times=4)
+		sleep(2)		
+		sortOrView="Sort list by" if sort else "View contact names as"
+		firstOrLast="First name*" if first else "Last name*"
+		try:
+			self.getView(sortOrView).touch()
+			sleep(1)
+			self.getView(firstOrLast,regex=True).touch()
+			return True
+		except AttributeError:
+			return False
+		finally:
+			self.goList()
 		
 	def favor(self,str,favor=True):
 		'''
