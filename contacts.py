@@ -2,9 +2,14 @@
 
 #Author: Jason Hou
 
-#Date: 2013/06/29
+#Date: 2013/07/02
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.4 Thirteenth Release 29-Jun-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. refactor the getCounter and delete method by Faure
 
 # VERSION : 1.3 Thirteenth Release 29-Jun-13 Jason Hou
 # REASON : Update implementation
@@ -91,7 +96,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.3'
+__version__ = '1.4'
 
 import os,sys,re
 try:
@@ -210,7 +215,7 @@ class contacts:
 		keycode = 'KEYCODE_DPAD_DOWN' if down else 'KEYCODE_DPAD_UP'
 		for i in range(times):
 			self.device.press(keycode,'DOWN_AND_UP')
-			trace('scroll %s' % keycode[13:].lower())
+			trace('scroll %s' % keycode.split('_')[-1].lower())
 		self.device.press('KEYCODE_ENTER','DOWN_AND_UP')
 		trace('press Enter')
 		
@@ -328,10 +333,13 @@ class contacts:
 		if self.isEmpty():
 			self.contactCounter=0
 		else:
-			while not self.getView('\d+ contacts?',regex=True):
-				self.slide('down')
-				sleep(3)
-			self.contactCounter = int(self.getView('\d+ contacts?',regex=True,dump=False).getText().split()[0])
+			while True:
+				try:
+					self.contactCounter = int(self.getView('\d+ contacts?',regex=True).getText().split()[0])
+					break
+				except AttributeError:
+					self.slide('down')
+					sleep(1)
 		trace('current contacts counter is %d' % self.contactCounter)
 		return self.contactCounter
 
@@ -623,53 +631,29 @@ class contacts:
 		'''delete one contact
 		@type kwd: string
 		@param kwd: keyword which contact to be delete, if none,delete first contact
-		@return: 
+		@return: True if operate sucess, False if operate fail.
 		'''
-		#self.start()
-		#trace('launch on contact application')
-
-		self.goList()
 		if self.isEmpty():
 			trace('Could not find any contact data,no record!')
-			raise SyntaxError('Could not find any contact data,no record!')
-
-		if not kwd :
-			# keyword is empty,delete first contact
-			trace('keyword is none, first contact with be delete')
-			find = self.getView('id/no_id/27',iD=True,dump=False)
-			#if find != None:
-		else :
-			# keyword is not none
-			# search specifying contact by keyword
-			find = self.search(kwd)
-			trace('')
-			# if find != None:
-		if not find :
-			trace('Could not find the contact : ' + kwd)
-			raise SyntaxError('Could not find the contact : ' + kwd)
-		else:
+			return False
+		find = self.search(kwd) if kwd else self.getView('id/no_id/27',iD=True,dump=False)
+		try:
 			# delete operate 
 			find.touch()
-			sleep(3)
-			trace('show contact detail information')
-			sleep(1)
-			self.device.press('KEYCODE_MENU')
 			sleep(4)
-			delete_menu = self.getView('Delete')
-			trace('choose delete contact')
-			delete_menu.touch()
-			
-			# confirm delete operate
-			ok_menu = self.getView('OK')
-			ok_menu.touch()
+			trace('show contact detail information')
+			self.menu()
 			sleep(3)
-			
-		# if current activity is not Main Activity back to Main Activity
-		self.goList()
+			self.scroll(times=3)
+			trace('choose delete contact')
+			self.getView('OK').touch()
+			sleep(3)
+			return True
+		except AttributeError:
+			return False
+		finally:
+			self.goList()
 		
-		if 0 == self.getCounter() :
-			trace(' all contacts has been deleted, no record!')
-		trace('operation success.')
 if __name__ == '__main__':
 	device=MonkeyRunner.waitForConnection()
 	trace('=' * 80)
