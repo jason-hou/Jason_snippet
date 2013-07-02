@@ -6,7 +6,7 @@
 
 ############################ CHANGE HISTORY ############################
 
-# VERSION : 1.4 Thirteenth Release 29-Jun-13 Jason Hou
+# VERSION : 1.4 Fourteenth Release 02-Jul-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
 # DESCRIPTION : 1. refactor the getCounter and delete method by Faure
