@@ -6,7 +6,13 @@
 
 ############################ CHANGE HISTORY ############################
 
-# VERSION : 1.5 Fourteenth Release 04-Jul-13 Jason Hou
+# VERSION : 1.6 sixteenth Release 04-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. refactor the editDetails relevant module
+#				2. update scroll method
+
+# VERSION : 1.5 Fifteenth Release 04-Jul-13 Jason Hou
 # REASON : Update implementation
 # REFERENCE : 
 # DESCRIPTION : 1. refactor the addContact module
@@ -102,7 +108,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.5'
+__version__ = '1.6'
 
 import os,sys,re
 try:
@@ -209,7 +215,7 @@ class contacts:
 		self.device.press('KEYCODE_MENU','DOWN_AND_UP')
 		trace('press menu')
 		
-	def scroll(self,down=True,times=1):
+	def scroll(self,times=1,down=True):
 		'''
 		scoll up or down for some times then touch the highlight submenu item
 		
@@ -432,6 +438,11 @@ class contacts:
 			Exception('wipe failed')
 	
 	def addContact(self,**contact):
+		'''
+		add new contact
+		@type contact: collecting parameters
+		@param contact: valid key value should be 'name','phone','email' or 'address'
+		'''
 		for i in contact.keys():
 			if i not in ['name','phone','email','address']:
 				raise SyntaxError("Wrong key value, choose from 'name','phone','email' or 'address'")
@@ -469,10 +480,17 @@ class contacts:
 			self.goList()
 
 	def goEditExistContact(self,str):
+		'''
+		go to Edit view of exist contact
+		@type searchInfo: str
+		@param searchInfo: information of contacts
+		
+		@return:True
+		'''
 		trace('Search a contact to edit')
-		view=self.search(str)
+		view=self.search(searchInfo)
 		if not view:
-			raise SyntaxError('No '+str+' contact to edit')
+			raise SyntaxError('No '+searchInfo+' contact to edit')
 		view.touch()
 		sleep(4)
 		self.device.press('KEYCODE_MENU')
@@ -480,9 +498,34 @@ class contacts:
 		self.device.press('KEYCODE_DPAD_DOWN')
 		sleep(1)
 		self.device.press('KEYCODE_ENTER')
-		sleep(3)	
+		sleep(4)
+		return True
 
-	def editCompany(self,company,action):
+	def editName(self,name):
+		'''
+		edit Name details of contacts
+		@type name: str
+		@param name: content of Name
+		
+		@return: True
+		'''
+		#find EditText of Name
+		view = self.getView('id/no_id/27',iD=True)	
+		#edit name
+		self.wipe(view)
+		view.type(name)
+		sleep(1)
+		trace("edit contact's name OK")	
+		return True
+
+	def editCompany(self,company):
+		'''
+		edit Company details of contacts
+		@type company: str
+		@param company: content of Company
+		
+		@return: True
+		'''
 		view=self.getView('Add organization')
 		if view:
 			trace('Step: add a organization info')
@@ -491,77 +534,124 @@ class contacts:
 			trace('add the company info')
 			self.device.type(company)
 			sleep(1)
-			view=self.getView('Title')
-			trace("add a company's Title")
-			view.type(company)
 		else:
 			trace('Step: Edit the organization info')  
 			view=self.getView('id/no_id/42',iD=True)
 			self.wipe(view)
 			trace('Edit the company info')
 			self.device.type(company)
-			view=self.getView('id/no_id/43',iD=True)
-			trace("Edit the company's Title")
-			self.wipe(view)
-			self.device.type(company)
+			sleep(1)
+		return True	
 
-	def editAnotherField(self,fieldName,content,action):
-		find=1
-		view=self.getView(fieldName)
-		view2=self.getView('Add another field')
-		while not view:
-			self.device.drag((440,760),(440,160),2,5)
-			sleep(1)
-			view=self.getView(fieldName)
-			view2=self.getView('Add another field')
-			if view2:
-				if not view:
-					find=0
-					break
-		if 0==find:
-			trace('Step: add field '+fieldName+' info')
-			view2.touch()
-			trace('Click Add another field')
-			sleep(2)
-			view=self.getView(fieldName)
-			if not view:
-				view2=self.getView('id/no_id/2',iD=True)
-				self.slide('up',view2)
-				view=self.getView(fieldName)
-			view.touch()
-			sleep(1)
-			#view=self.getView(fieldName)
-			#view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
-			#view2.type(content)
-			sleep(1)
-			self.device.type(content)
-			sleep(2)
-		else:
-			trace('Step: Edit field '+fieldName+' info')
-			view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
-			self.wipe(view2)
-			sleep(1)
-			view2.type(content)
-			sleep(1)
-			   
-	def editDetails(self,nameOrNumber,company='',website='',nickname='',notes='',action='add'):
+	def editDetails(self,contactsInfo,action='update',**editInfo):
 		'''
-		
+		edit details of contact with add or update
+		@type contactsInfo: str
+		@param contactsInfo: information of contacts
+		@type action: str
+		@param action: 'add' or 'update' details
+		@type editInfo: str
+		@param editInfo: collect all need edit information
+	
+		@return: True
 		'''
-		self.goEditExistContact(nameOrNumber)
-		if not company=='':
-			self.editCompany(company,action)
-		if not website=='':
-			self.editAnotherField('Website',website,action)
-		if not nickname=='':
-			self.editAnotherField('Nickname',nickname,action)        
-		if not website=='':
-			self.editAnotherField('Notes',notes,action)          
-		view=self.getView('Done')
+		self.goEditExistContact(contactsInfo)
+		for fieldName in editInfo:
+			if fieldName not in ['Name','Phone','Email','Address','Company','Website','Nickname','Notes']:
+				raise SyntaxError("wrong parameter: fieldName choose from 'Name','Phone','Email','Address','Company','Website','Nickname','Notes'")
+
+		if 'update'==action:
+			for updateField in editInfo:
+				if 'Name' == updateField:
+					self.editName(editInfo[updateField])
+				elif 'Company' == updateField:
+					self.editCompany(editInfo[updateField])
+				else:
+					self.updateDetails(updateField,editInfo[updateField])
+		if 'add'==action:
+			for addField in editInfo:
+				if 'Name' == addField:
+					self.editName(editInfo[addField])
+				elif 'Company' == addField:
+					self.editCompany(editInfo[addField])
+				else:
+					self.addDetails(addField,editInfo[addField])        
+
+		self.getView('Done').touch()
 		trace('Click Done')
-		view.touch()
 		sleep(3)
 		self.goList()
+		
+		return True
+
+	def addDetails(self,fieldName,content):
+		'''
+		add details of 'fieldName' with 'content'
+		@type fieldName: str
+		@param fieldName: name of field that will be eidt , e.g: Phone,Email,etc
+		@type content: str
+		@param content: edit content 
+		
+		@return:True
+		'''
+		trace('edit '+fieldName+ ' with add')
+			
+		#touch 'Add another field'
+		while True:
+			try:
+				self.getView('Add another field').touch()
+				sleep(3)
+				break
+			except AttributeError:
+				self.slide('up')
+				sleep(2)
+				
+		#touch fieldName and edit 
+		while True:
+			try:
+				self.getView(fieldName).touch()
+				sleep(2)
+				break
+			except AttributeError:
+				view2 = self.getView('id/no_id/2',iD=True,dump=False)
+				self.slide('up',view2)
+				sleep(1)
+	
+		self.device.type(content)
+		sleep(1)
+		trace('edit '+fieldName+' with add OK')
+		
+		return True
+		
+	
+	def updateDetails(self,fieldName,content):
+		'''
+		update details of 'fieldName' with 'content'
+		@type fieldName: str
+		@param fieldName: name of field that will be eidt , e.g: Phone,Email,etc
+		@type content: str
+		@param content: edit content 
+		
+		@return:True
+		'''
+		trace('Edit field '+fieldName+' info')
+		
+		#find fieldName
+		while not self.getView(fieldName):
+			self.slide('up')
+			sleep(2)
+			
+		#get editView of fieldName
+		view = self.getView(fieldName,dump=False)
+		view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
+		
+		#wipe old content and update with new content
+		self.wipe(view2)
+		sleep(1)
+		view2.type(content)
+		sleep(1)
+		
+		return True
 
 	def search(self,str):
 		'''
@@ -691,10 +781,17 @@ if __name__ == '__main__':
 			# if 'unknown' == result:
 				# trace('Exception details: ' + details)
 			sleep(5)
+	
+	c.favor('jason')
+	c.favor('jason')
+	c.favor('jason',False)
+	c.favor('jason',False)
+	
+	c.editDetails('222',action='add', Website='www')
+	c.editDetails('222',action='update', Website='mmm')
+	c.editDetails('222',action='add', Nickname='nick')
+	c.editDetails('222',action='add', Company='teleca')
+	c.editDetails('222',action='add', Phone='123456789')
 	'''
-	c.favor('jason')
-	c.favor('jason')
-	c.favor('jason',False)
-	c.favor('jason',False)
 	trace('end testing')
 	############################ add contact case Finished ############################
