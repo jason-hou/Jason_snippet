@@ -1,0 +1,20 @@
+# Compiled classes #
+####################
+*$py.class
+*.pyc
+
+# Mac files #
+#############
+.DS_Store
+
+# vi files #
+############
+.*.swp
+
+# other files #
+##########
+*~
+
+# record files #
+############
+recorder.txt
