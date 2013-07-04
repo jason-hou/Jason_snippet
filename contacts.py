@@ -2,9 +2,15 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/02
+#Date: 2013/07/04
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.5 Fourteenth Release 04-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. refactor the addContact module
+#				2. refactor delete and getCounter module by Faure
 
 # VERSION : 1.4 Fourteenth Release 02-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -96,7 +102,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.4'
+__version__ = '1.5'
 
 import os,sys,re
 try:
@@ -425,35 +431,39 @@ class contacts:
 		except:
 			Exception('wipe failed')
 	
-	def addContact(self,name='',phone='',email='',address=''):
+	def addContact(self,**contact):
+		for i in contact.keys():
+			if i not in ['name','phone','email','address']:
+				raise SyntaxError("Wrong key value, choose from 'name','phone','email' or 'address'")
 		self.goEdit()
+		offset = 0
 		try:
-			offset = 0
-			if name:
+			try:
+				name=contact['name']
 				view=self.getView('id/no_id/27',iD=True)
 				trace('type %s' % name)
 				view.type(name)
 				view.touch()
-			if phone:
-				view=self.getView('id/no_id/46',iD=True,dump=False)
-				trace('type %s' % phone)
-				view.type(phone)
+			except KeyError: pass
+			try:
+				trace('type %s' % contact['phone'])
+				self.getView('id/no_id/46',iD=True,dump=False).type(contact['phone'])
 				offset += 4
 				sleep(2)
-			if email:
-				view=self.getView('id/no_id/' + str(57 + offset), iD=True)
-				trace('type %s' % email)
-				view.type(email)
+			except KeyError: pass
+			try:
+				trace('type %s' % contact['email'])
+				self.getView('id/no_id/' + str(57 + offset), iD=True).type(contact['email'])
 				offset += 4
 				sleep(2)
-			if address:
-				view=self.getView('id/no_id/' + str(68 + offset), iD=True)
-				trace('type %s' % address)
-				view.type(address)
+			except KeyError: pass
+			try:
+				trace('type %s' % contact['address'])
+				self.getView('id/no_id/' + str(68 + offset), iD=True).type(contact['address'])
 				sleep(2)
-			view=self.getView('Done',dump=False)
-			view.touch()
-			trace('Touch Done')						
+			except KeyError: pass
+			trace('Touch Done')
+			self.getView('Done',dump=False).touch()
 		finally:
 			sleep(5)
 			self.goList()
