@@ -2,9 +2,16 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/04
+#Date: 2013/07/06
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.7 seventeenth Release 06-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. update goEdit to support to go to Edit view of exist contacts;
+#				2. update menu, scroll method;
+#				3. refactor the editDetails relevant module
 
 # VERSION : 1.6 sixteenth Release 04-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -108,7 +115,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.6'
+__version__ = '1.7'
 
 import os,sys,re
 try:
@@ -198,8 +205,7 @@ class contacts:
 		trace('Contacts is started, checking the contacts status...')
 		self.isReady()
 		sleep(2)
-		
-			
+
 	def stop(self):
 		'''
 		stop the contacts activity and set the startStatus False
@@ -207,14 +213,15 @@ class contacts:
 		self.device.shell('am force-stop %s' % package)
 		trace('force stop contacts package %s' % package)
 		self.startStatus = False
-	
+
 	def menu(self):
 		'''
 		press menu
 		'''
 		self.device.press('KEYCODE_MENU','DOWN_AND_UP')
 		trace('press menu')
-		
+		sleep(2)
+
 	def scroll(self,times=1,down=True):
 		'''
 		scoll up or down for some times then touch the highlight submenu item
@@ -230,14 +237,15 @@ class contacts:
 			trace('scroll %s' % keycode.split('_')[-1].lower())
 		self.device.press('KEYCODE_ENTER','DOWN_AND_UP')
 		trace('press Enter')
-		
+		sleep(2)
+
 	def back(self):
 		'''
 		press back
 		'''
 		self.device.press('KEYCODE_BACK','DOWN_AND_UP')
 		trace('press back')
-		
+
 	def slide(self,str,view=None):
 		'''
 		slide the screen
@@ -269,7 +277,7 @@ class contacts:
 		self.device.drag(nav[str]['start'], nav[str]['end'], 0.1, 10)
 		trace('slide the screen from %s to %s ' % (nav[str]['start'],nav[str]['end']))
 		sleep(2)
-		
+
 	def getView(self,str,cD=False,iD=False,dump=True,regex=False):
 		'''
 		get the view with the specified text, content description or viewId
@@ -288,7 +296,6 @@ class contacts:
 			trace('before dump')
 			self.vc.dump()
 			trace('after dump')
-		
 		if cD:
 			view=self.vc.findViewWithContentDescription(str)
 			trace('Query view with content description: %s, return is %s' % (str, view is not None))
@@ -305,7 +312,7 @@ class contacts:
 			view=self.vc.findViewWithText(str)
 			trace('Query view with text: %s, return is %s ' % (str, view is not None))
 			return view
-			
+
 	def isReady(self):
 		'''
 		check whether the contacts is ready.
@@ -320,7 +327,7 @@ class contacts:
 				trace('Contacts is not ready, please wait!')
 				sleep(2)
 		return True
-	
+
 	def isEmpty(self):
 		'''
 		check whether the contacts is empty
@@ -335,6 +342,7 @@ class contacts:
 		else:
 			trace('Contacts list is not empty')
 			return False
+
 	def getCounter(self):
 		'''
 		get the contacts counter
@@ -373,30 +381,43 @@ class contacts:
 				break
 		trace('Goto contacts list view')
 		return True
-		
-	def goEdit(self):
+
+	def goEdit(self,searchInfo=None):
 		'''
 		check whether the contacts is empty, then select adding and go to edit view.
+		if searchInfo is specified, then go to Edit view of exist contact
 		
+		@type searchInfo: str
+		@param searchInfo: information of contacts
 		@return: True
 		'''
 		self.check()
-		try:
-			self.getView('Add Contact',cD=True,dump=False).touch()
-			trace('Touch "Add Contact"')
-			sleep(5)
+		if searchInfo:
+			try:
+				self.search(searchInfo).touch()
+			except AttributeError:
+				raise SyntaxError('No such contact info: %s to edit' % searchInfo)
+			sleep(3)
+			self.menu()
+			self.scroll(times=1)
 			return True
-		except AttributeError: pass
-		try:
-			self.getView('Create a new contact',dump=False).touch()
-			trace('Touch "Create a new contact"')
-			sleep(5)
-			self.getView('Keep local').touch()
-			trace('Select "Keep local"')
-			sleep(5)
-			return True
-		except AttributeError: pass
-						
+		else:
+			try:
+				self.getView('Add Contact',cD=True,dump=False).touch()
+				trace('Touch "Add Contact"')
+				sleep(5)
+				return True
+			except AttributeError: pass
+			try:
+				self.getView('Create a new contact',dump=False).touch()
+				trace('Touch "Create a new contact"')
+				sleep(5)
+				self.getView('Keep local').touch()
+				trace('Select "Keep local"')
+				sleep(5)
+				return True
+			except AttributeError: pass
+
 	def check(self):
 		'''
 		check whether the contacts is started before other operation about contacts
@@ -407,7 +428,7 @@ class contacts:
 			trace("Wrong code! please start contacts firstly in you code")
 			raise SyntaxError('contacts should be start firstly!')
 		return True
-		
+
 	def snapshot(self,title):
 		'''
 		take snapshot
@@ -425,7 +446,7 @@ class contacts:
 		result.writeToFile(snapFile,'png')
 		trace('save the snapshot to file: %s ' % snapFile)
 		return result
-	
+
 	def wipe(self,view):
 		'''
 		wipe the text in specified view
@@ -436,7 +457,7 @@ class contacts:
 			self.device.press('KEYCODE_DEL','DOWN_AND_UP')
 		except:
 			Exception('wipe failed')
-	
+
 	def addContact(self,**contact):
 		'''
 		add new contact
@@ -479,28 +500,6 @@ class contacts:
 			sleep(5)
 			self.goList()
 
-	def goEditExistContact(self,str):
-		'''
-		go to Edit view of exist contact
-		@type searchInfo: str
-		@param searchInfo: information of contacts
-		
-		@return:True
-		'''
-		trace('Search a contact to edit')
-		view=self.search(searchInfo)
-		if not view:
-			raise SyntaxError('No '+searchInfo+' contact to edit')
-		view.touch()
-		sleep(4)
-		self.device.press('KEYCODE_MENU')
-		sleep(2)
-		self.device.press('KEYCODE_DPAD_DOWN')
-		sleep(1)
-		self.device.press('KEYCODE_ENTER')
-		sleep(4)
-		return True
-
 	def editName(self,name):
 		'''
 		edit Name details of contacts
@@ -509,12 +508,9 @@ class contacts:
 		
 		@return: True
 		'''
-		#find EditText of Name
-		view = self.getView('id/no_id/27',iD=True)	
-		#edit name
+		view = self.getView('id/no_id/27',iD=True)
 		self.wipe(view)
 		view.type(name)
-		sleep(1)
 		trace("edit contact's name OK")	
 		return True
 
@@ -526,24 +522,59 @@ class contacts:
 		
 		@return: True
 		'''
-		view=self.getView('Add organization')
-		if view:
-			trace('Step: add a organization info')
-			view.touch()
+		try:
+			self.getView('Add organization').touch()
 			sleep(1)
-			trace('add the company info')
 			self.device.type(company)
-			sleep(1)
-		else:
-			trace('Step: Edit the organization info')  
-			view=self.getView('id/no_id/42',iD=True)
+			trace('add the company: %s' % company)
+		except AttributeError:
+			view = self.getView('id/no_id/42',iD=True)
 			self.wipe(view)
-			trace('Edit the company info')
-			self.device.type(company)
-			sleep(1)
-		return True	
+			view.type(company)
+			trace('update the company: %s' % company)
+		return True
 
-	def editDetails(self,contactsInfo,action='update',**editInfo):
+	def editOther(self,fieldName,content):
+		'''
+		edit details of other field
+		@type fieldName: str
+		@param fieldName: name of field
+		@type content: str
+		@param content: edit content
+	
+		@return: True
+		'''
+		while True:
+			try:
+				viewId = self.getView(fieldName).getId()
+				view2Id = viewId[:-2]+str(int(viewId[-2:])+6)
+				view2=self.getView(view2Id,iD=True)
+				self.wipe(view2)
+				view2.type(content)
+				break
+			except AttributeError:
+				try:
+					self.getView('Add another field').touch()
+					sleep(1)
+					while True:
+						try:
+							self.getView(fieldName).touch()
+							sleep(2)
+							break
+						except AttributeError:
+							view2 = self.getView('id/no_id/2',iD=True,dump=False)
+							self.slide('up',view2)
+							sleep(1)
+					self.device.type(content)
+					trace('edit '+fieldName+' with add OK')
+					break
+				except AttributeError:
+					pass
+			self.slide('up')
+			sleep(2)
+		return True
+
+	def editDetails(self,contactsInfo,**editInfo):
 		'''
 		edit details of contact with add or update
 		@type contactsInfo: str
@@ -555,103 +586,33 @@ class contacts:
 	
 		@return: True
 		'''
-		self.goEditExistContact(contactsInfo)
 		for fieldName in editInfo:
 			if fieldName not in ['Name','Phone','Email','Address','Company','Website','Nickname','Notes']:
 				raise SyntaxError("wrong parameter: fieldName choose from 'Name','Phone','Email','Address','Company','Website','Nickname','Notes'")
-
-		if 'update'==action:
+		keyNumber = editInfo.__len__()
+		self.goEdit(contactsInfo)
+		try:
 			for updateField in editInfo:
-				if 'Name' == updateField:
-					self.editName(editInfo[updateField])
-				elif 'Company' == updateField:
-					self.editCompany(editInfo[updateField])
+				if updateField in ['Name','Company']:
+					try:
+						self.editName(editInfo['Name'])
+					except KeyError: pass
+					try:
+						self.editCompany(editInfo['Company'])
+					except KeyError: pass
 				else:
-					self.updateDetails(updateField,editInfo[updateField])
-		if 'add'==action:
-			for addField in editInfo:
-				if 'Name' == addField:
-					self.editName(editInfo[addField])
-				elif 'Company' == addField:
-					self.editCompany(editInfo[addField])
-				else:
-					self.addDetails(addField,editInfo[addField])        
-
-		self.getView('Done').touch()
-		trace('Click Done')
-		sleep(3)
-		self.goList()
-		
-		return True
-
-	def addDetails(self,fieldName,content):
-		'''
-		add details of 'fieldName' with 'content'
-		@type fieldName: str
-		@param fieldName: name of field that will be eidt , e.g: Phone,Email,etc
-		@type content: str
-		@param content: edit content 
-		
-		@return:True
-		'''
-		trace('edit '+fieldName+ ' with add')
-			
-		#touch 'Add another field'
-		while True:
-			try:
-				self.getView('Add another field').touch()
-				sleep(3)
-				break
-			except AttributeError:
-				self.slide('up')
-				sleep(2)
-				
-		#touch fieldName and edit 
-		while True:
-			try:
-				self.getView(fieldName).touch()
-				sleep(2)
-				break
-			except AttributeError:
-				view2 = self.getView('id/no_id/2',iD=True,dump=False)
-				self.slide('up',view2)
-				sleep(1)
-	
-		self.device.type(content)
-		sleep(1)
-		trace('edit '+fieldName+' with add OK')
-		
-		return True
-		
-	
-	def updateDetails(self,fieldName,content):
-		'''
-		update details of 'fieldName' with 'content'
-		@type fieldName: str
-		@param fieldName: name of field that will be eidt , e.g: Phone,Email,etc
-		@type content: str
-		@param content: edit content 
-		
-		@return:True
-		'''
-		trace('Edit field '+fieldName+' info')
-		
-		#find fieldName
-		while not self.getView(fieldName):
-			self.slide('up')
-			sleep(2)
-			
-		#get editView of fieldName
-		view = self.getView(fieldName,dump=False)
-		view2=self.getView(view.getId()[:-2]+str(int(view.getId()[-2:])+6),iD=True)
-		
-		#wipe old content and update with new content
-		self.wipe(view2)
-		sleep(1)
-		view2.type(content)
-		sleep(1)
-		
-		return True
+					self.editOther(updateField, editInfo[updateField])
+				self.getView('Done').touch()
+				trace('Click Done')
+				keyNumber -= 1
+				trace('keyNumber: %i' % keyNumber)
+				if keyNumber:
+					sleep(3)
+					self.menu()
+					self.scroll(times=1)
+		finally:
+			sleep(3)
+			self.goList()
 
 	def search(self,str):
 		'''
@@ -674,7 +635,7 @@ class contacts:
 			return False
 		#the id of 1st search result is always 28
 		return self.getView("id/no_id/28",iD=True)
-		
+
 	def sortAndViewAs(self, sort=True, first=True):
 		'''
 		sort and view contact name
@@ -682,12 +643,11 @@ class contacts:
 		@param sort: whether sort contact name or view contact  
 		@type first: boolean
 		@param first: whether sort and view contact by first name or last name   
-		@return: boolean           
+		@return: boolean
 		'''
 		trace("start sorting...")
-		self.menu()                
+		self.menu()
 		self.scroll(times=4)
-		sleep(2)		
 		sortOrView="Sort list by" if sort else "View contact names as"
 		firstOrLast="First name*" if first else "Last name*"
 		try:
@@ -699,7 +659,7 @@ class contacts:
 			return False
 		finally:
 			self.goList()
-		
+
 	def favor(self,str,favor=True):
 		'''
 		add or cancel contact to favorites
@@ -725,9 +685,8 @@ class contacts:
 		sleep(3)
 		self.goList()
 		return True
-		
+
 	def delete(self,kwd = ''):
-        
 		'''delete one contact
 		@type kwd: string
 		@param kwd: keyword which contact to be delete, if none,delete first contact
@@ -743,7 +702,6 @@ class contacts:
 			sleep(4)
 			trace('show contact detail information')
 			self.menu()
-			sleep(3)
 			self.scroll(times=3)
 			trace('choose delete contact')
 			self.getView('OK').touch()
@@ -753,7 +711,7 @@ class contacts:
 			return False
 		finally:
 			self.goList()
-		
+
 if __name__ == '__main__':
 	device=MonkeyRunner.waitForConnection()
 	trace('=' * 80)
@@ -763,8 +721,8 @@ if __name__ == '__main__':
 	c.start()
 	trace('complete contacts activity starting')
 	############################ add contact case Beginning ############################
-	c.favor('jason1')
 	'''
+	c.favor('jason1')
 	for i in range(5):
 		result='failed'
 		try:	
@@ -793,5 +751,8 @@ if __name__ == '__main__':
 	c.editDetails('222',action='add', Company='teleca')
 	c.editDetails('222',action='add', Phone='123456789')
 	'''
+	c.editDetails('222', Website='www',Nickname='tom',Company='teleca',Phone='7654321')
+	c.editDetails('222', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567')
+	
 	trace('end testing')
 	############################ add contact case Finished ############################
