@@ -2,9 +2,18 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/06
+#Date: 2013/07/07
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.8 Eighteenth Release 07-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. Add configuraion file support function by Jack;
+#				2. Add touch method and update slide method to avoid the getXY bug in 4.1.2;
+#				3. Fix nullpoint bug if key value is None in editContact relevant method;
+#				4. update menu and scroll method to sleep 2 seconds;
+#				5. update logPath retrieve and logFile naming method
 
 # VERSION : 1.7 seventeenth Release 06-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -115,9 +124,9 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.7'
+__version__ = '1.8'
 
-import os,sys,re
+import os,sys,re,ConfigParser,datetime
 try:
 	for p in os.environ['PYTHONPATH'].split(';'):
 		if not p in sys.path:
@@ -129,16 +138,25 @@ from com.android.monkeyrunner import MonkeyRunner,MonkeyDevice,MonkeyImage
 from com.dtmilano.android.viewclient import ViewClient
 from log import trace
 
-logPath = r'C:\Users\cninjaho\Desktop'
-logName = 'case_log.txt'
+######################read configuration file####################
+nowPath = os.path.dirname(os.path.abspath(__file__))
+configPath = nowPath + '\\' + 'config'
+configName = 'UserDefine.conf'
+userConfigFile = configPath + '\\' + configName
+cP = ConfigParser.ConfigParser()
+cP.read(userConfigFile)
+logPath = cP.get('Path','logPath')
+logName = ''.join(re.split('\W+',str(datetime.datetime.now())[:-7])) + '.log'
 logFile = logPath + '\\' + logName
 
-trace = trace(logFile).trace
-
+mTrace = trace(logFile).trace
 package = 'com.android.contacts'
 activity = '.activities.PeopleActivity'
 componentName = package + '/' + activity
-	
+
+def trace(str):
+	mTrace('[Contacts]:' + str)
+
 def sleep(duration = 1):
 	'''
 	Monkey sleep
@@ -147,7 +165,6 @@ def sleep(duration = 1):
 	@param duration: how long to sleep
 	'''
 	MonkeyRunner.sleep(duration)
-	
 class contacts:
 	'''
 	contacts class
@@ -163,10 +180,30 @@ class contacts:
 		@type sample: boolean
 		@param sample: whether take snapshot as an sampling
 		'''
-		self.device=device
-		self.sample=sample
-		self.contactCounter=0
-		self.startStatus=False
+		if not device:
+			raise Exception('Cannot connect to device')
+		#get the API Level of the connected device
+		API_LEVEL = int(device.getProperty('build.version.sdk'))
+		#read the configuration file
+		if API_LEVEL == 17:
+			configFile = 'API-17.conf'
+		elif API_LEVEL == 16:
+			configFile = 'API-16.conf'
+		else:
+			raise EnvironmentError('Not available configuration to support your device')
+		sysConfigFile = configPath + '\\' + configFile
+		cf=ConfigParser.ConfigParser()
+		cf.read(sysConfigFile)
+		self.AllContacts		= cf.get('Contacts','AllContacts')
+		self.AddNew				= cf.get('Contacts','AddNew')
+		self.CreateNewContact	= cf.get('Contacts','CreateNewContact')
+		self.NoContacts			= cf.get('Contacts','NoContacts')
+		self.KeepLocal			= cf.get('Contacts','KeepLocal')
+		self.IsReady			= cf.get('Contacts','IsReady')
+		self.device				= device
+		self.sample				= sample
+		self.contactCounter		= 0
+		self.startStatus		= False
 		'''the status which indicate whether the contacts activity is started'''
 		
 		#use below code to remove the status bar from the snapshot
@@ -258,13 +295,14 @@ class contacts:
 		if str not in ['left','right','up','down']:
 			raise SyntaxError("wrong parameter: choose from 'left','right','up' or 'down'")
 		try:
-			cX,cY = view.getCenter()
+			cX = view.getX()
+			cY = view.getY()
 			width = view.getWidth()
 			height = view.getHeight()
-			cL = cX - width/4, cY
-			cR = cX + width/4, cY
-			cU = cX, cY - height/4
-			cD = cX, cY + height/4
+			cL = cX + width/4, cY + height/2
+			cR = cX + width/4*3, cY + height/2
+			cU = cX + width/2, cY + height/4
+			cD = cX + width/2, cY + height/4*3
 		except AttributeError:
 			pass
 		(left, right, up, down) = (cL, cR, cU, cD) if view else (self.left, self.right, self.up, self.down)
@@ -313,13 +351,26 @@ class contacts:
 			trace('Query view with text: %s, return is %s ' % (str, view is not None))
 			return view
 
+	def touch(self,view):
+		'''
+		touch the specified view
+		@return: True
+		'''
+		x = view.getX()
+		y = view.getY()
+		w = view.getWidth()
+		h = view.getHeight()
+		self.device.touch(x + w/2, y + h/2,'DWON_AND_UP')
+		return True
+
 	def isReady(self):
 		'''
 		check whether the contacts is ready.
 		@return: True
 		'''
 		while True:
-			view=self.getView('Contacts list is being updated to reflect the change of language.')
+			#view=self.getView('Contacts list is being updated to reflect the change of language.')
+			view=self.getView(self.IsReady)
 			if not view:
 				trace('Contacts is ready')
 				break
@@ -335,7 +386,8 @@ class contacts:
 		@return: True or False
 		'''
 		self.check()
-		view=self.getView('No contacts.')
+		#view=self.getView('No contacts.')
+		view=self.getView(self.NoContacts)
 		if view:
 			trace('Contacts list is empty')
 			return True
@@ -370,7 +422,8 @@ class contacts:
 		@return: True
 		'''
 		while True:
-			view=self.getView("All contacts",cD=True)
+			#view=self.getView("All contacts",cD=True)
+			view=self.getView(self.AllContacts,cD=True)
 			if not view:
 				self.back()
 				sleep(3)
@@ -403,17 +456,19 @@ class contacts:
 			return True
 		else:
 			try:
-				self.getView('Add Contact',cD=True,dump=False).touch()
-				trace('Touch "Add Contact"')
+				self.getView(self.AddNew,cD=True,dump=False).touch()
+				trace('Touch ' + self.AddNew)
 				sleep(5)
 				return True
 			except AttributeError: pass
 			try:
-				self.getView('Create a new contact',dump=False).touch()
+				#self.getView('Create a new contact',dump=False).touch()
+				self.getView(self.CreateNewContact,dump=False).touch()
 				trace('Touch "Create a new contact"')
 				sleep(5)
-				self.getView('Keep local').touch()
-				trace('Select "Keep local"')
+				#self.getView('Keep local').touch()
+				self.touch(self.getView(self.KeepLocal))
+				trace('Select "Keep local"' )
 				sleep(5)
 				return True
 			except AttributeError: pass
@@ -473,24 +528,24 @@ class contacts:
 			try:
 				name=contact['name']
 				view=self.getView('id/no_id/27',iD=True)
-				trace('type %s' % name)
+				trace('Type %s' % name)
 				view.type(name)
 				view.touch()
 			except KeyError: pass
 			try:
-				trace('type %s' % contact['phone'])
+				trace('Type %s' % contact['phone'])
 				self.getView('id/no_id/46',iD=True,dump=False).type(contact['phone'])
 				offset += 4
 				sleep(2)
 			except KeyError: pass
 			try:
-				trace('type %s' % contact['email'])
+				trace('Type %s' % contact['email'])
 				self.getView('id/no_id/' + str(57 + offset), iD=True).type(contact['email'])
 				offset += 4
 				sleep(2)
 			except KeyError: pass
 			try:
-				trace('type %s' % contact['address'])
+				trace('Type %s' % contact['address'])
 				self.getView('id/no_id/' + str(68 + offset), iD=True).type(contact['address'])
 				sleep(2)
 			except KeyError: pass
@@ -510,8 +565,11 @@ class contacts:
 		'''
 		view = self.getView('id/no_id/27',iD=True)
 		self.wipe(view)
-		view.type(name)
-		trace("edit contact's name OK")	
+		if name:
+			self.device.type(name)
+			trace("Type Name: %s" % name)
+		else:
+			trace("Erase Name")
 		return True
 
 	def editCompany(self,company):
@@ -525,13 +583,14 @@ class contacts:
 		try:
 			self.getView('Add organization').touch()
 			sleep(1)
-			self.device.type(company)
-			trace('add the company: %s' % company)
 		except AttributeError:
 			view = self.getView('id/no_id/42',iD=True)
 			self.wipe(view)
-			view.type(company)
-			trace('update the company: %s' % company)
+		if company:
+			self.device.type(company)
+			trace('Type Company: %s' % company)
+		else:
+			trace('Erase Company')
 		return True
 
 	def editOther(self,fieldName,content):
@@ -550,7 +609,11 @@ class contacts:
 				view2Id = viewId[:-2]+str(int(viewId[-2:])+6)
 				view2=self.getView(view2Id,iD=True)
 				self.wipe(view2)
-				view2.type(content)
+				if content:
+					self.device.type(content)
+					trace('Type %s: %s' %(fieldName,content))
+				else:
+					trace('Erase %s' % fieldName)
 				break
 			except AttributeError:
 				try:
@@ -558,15 +621,16 @@ class contacts:
 					sleep(1)
 					while True:
 						try:
-							self.getView(fieldName).touch()
+							self.touch(self.getView(fieldName))
 							sleep(2)
 							break
 						except AttributeError:
 							view2 = self.getView('id/no_id/2',iD=True,dump=False)
 							self.slide('up',view2)
 							sleep(1)
-					self.device.type(content)
-					trace('edit '+fieldName+' with add OK')
+					if content:
+						self.device.type(content)
+						trace('Type %s: %s' %(fieldName,content))
 					break
 				except AttributeError:
 					pass
@@ -589,23 +653,23 @@ class contacts:
 		for fieldName in editInfo:
 			if fieldName not in ['Name','Phone','Email','Address','Company','Website','Nickname','Notes']:
 				raise SyntaxError("wrong parameter: fieldName choose from 'Name','Phone','Email','Address','Company','Website','Nickname','Notes'")
-		keyNumber = editInfo.__len__()
 		self.goEdit(contactsInfo)
 		try:
+			try:
+				self.editName(editInfo['Name'])
+				editInfo.pop('Name')
+			except KeyError: pass
+			try:
+				self.editCompany(editInfo['Company'])
+				editInfo.pop('Company')
+			except KeyError: pass
+			keyNumber = editInfo.__len__()
 			for updateField in editInfo:
-				if updateField in ['Name','Company']:
-					try:
-						self.editName(editInfo['Name'])
-					except KeyError: pass
-					try:
-						self.editCompany(editInfo['Company'])
-					except KeyError: pass
-				else:
-					self.editOther(updateField, editInfo[updateField])
+				self.editOther(updateField, editInfo[updateField])
 				self.getView('Done').touch()
 				trace('Click Done')
 				keyNumber -= 1
-				trace('keyNumber: %i' % keyNumber)
+				trace('KeyNumber: %i' % keyNumber)
 				if keyNumber:
 					sleep(3)
 					self.menu()
@@ -633,8 +697,8 @@ class contacts:
 			else:
 				trace("No contacts searched")
 			return False
-		#the id of 1st search result is always 28
-		return self.getView("id/no_id/28",iD=True)
+		#the id of 1st search result is always 27
+		return self.getView("id/no_id/27",iD=True)
 
 	def sortAndViewAs(self, sort=True, first=True):
 		'''
@@ -713,10 +777,10 @@ class contacts:
 			self.goList()
 
 if __name__ == '__main__':
-	device=MonkeyRunner.waitForConnection()
+	device=MonkeyRunner.waitForConnection(5,'emulator-5554')
 	trace('=' * 80)
 	trace('start testing...')
-	c=contacts(device)
+	c=contacts(device,'emulator-5554')
 	trace('complete init')
 	c.start()
 	trace('complete contacts activity starting')
@@ -751,8 +815,10 @@ if __name__ == '__main__':
 	c.editDetails('222',action='add', Company='teleca')
 	c.editDetails('222',action='add', Phone='123456789')
 	'''
-	c.editDetails('222', Website='www',Nickname='tom',Company='teleca',Phone='7654321')
-	c.editDetails('222', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567')
-	
+	# c.addContact(name='222')
+	# c.editDetails('222', Name='Jason',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
+	# c.editDetails('7654321', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567',Name='222')
+	c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
+	c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
 	trace('end testing')
 	############################ add contact case Finished ############################
