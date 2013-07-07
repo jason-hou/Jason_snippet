@@ -2,9 +2,15 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/07
+#Date: 2013/07/08
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 1.9 Nineteenth Release 08-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. Refactor addContact method;
+#				2. update isReady, delete and sortAndViewAs method
 
 # VERSION : 1.8 Eighteenth Release 07-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -124,7 +130,7 @@
 ############################ CHANGE HISTORY ############################
 
 
-__version__ = '1.8'
+__version__ = '1.9'
 
 import os,sys,re,ConfigParser,datetime
 try:
@@ -361,6 +367,8 @@ class contacts:
 		w = view.getWidth()
 		h = view.getHeight()
 		self.device.touch(x + w/2, y + h/2,'DWON_AND_UP')
+		trace('Touch (%d,%d)' % (x + w/2, y + h/2))
+		sleep(3)
 		return True
 
 	def isReady(self):
@@ -376,7 +384,7 @@ class contacts:
 				break
 			else:
 				trace('Contacts is not ready, please wait!')
-				sleep(2)
+				sleep(4)
 		return True
 
 	def isEmpty(self):
@@ -453,7 +461,6 @@ class contacts:
 			sleep(3)
 			self.menu()
 			self.scroll(times=1)
-			return True
 		else:
 			try:
 				self.getView(self.AddNew,cD=True,dump=False).touch()
@@ -469,10 +476,9 @@ class contacts:
 				#self.getView('Keep local').touch()
 				self.touch(self.getView(self.KeepLocal))
 				trace('Select "Keep local"' )
-				sleep(5)
-				return True
+				sleep(2)
 			except AttributeError: pass
-
+		return True
 	def check(self):
 		'''
 		check whether the contacts is started before other operation about contacts
@@ -513,47 +519,15 @@ class contacts:
 		except:
 			Exception('wipe failed')
 
-	def addContact(self,**contact):
+	def addContact(self,**editInfo):
 		'''
 		add new contact
-		@type contact: collecting parameters
-		@param contact: valid key value should be 'name','phone','email' or 'address'
+		@type editInfo: collecting parameters
+		@param editInfo: valid key value should be 'Name','Phone','Email','Address','Company','Website','Nickname','Notes'
+
+		@return: True
 		'''
-		for i in contact.keys():
-			if i not in ['name','phone','email','address']:
-				raise SyntaxError("Wrong key value, choose from 'name','phone','email' or 'address'")
-		self.goEdit()
-		offset = 0
-		try:
-			try:
-				name=contact['name']
-				view=self.getView('id/no_id/27',iD=True)
-				trace('Type %s' % name)
-				view.type(name)
-				view.touch()
-			except KeyError: pass
-			try:
-				trace('Type %s' % contact['phone'])
-				self.getView('id/no_id/46',iD=True,dump=False).type(contact['phone'])
-				offset += 4
-				sleep(2)
-			except KeyError: pass
-			try:
-				trace('Type %s' % contact['email'])
-				self.getView('id/no_id/' + str(57 + offset), iD=True).type(contact['email'])
-				offset += 4
-				sleep(2)
-			except KeyError: pass
-			try:
-				trace('Type %s' % contact['address'])
-				self.getView('id/no_id/' + str(68 + offset), iD=True).type(contact['address'])
-				sleep(2)
-			except KeyError: pass
-			trace('Touch Done')
-			self.getView('Done',dump=False).touch()
-		finally:
-			sleep(5)
-			self.goList()
+		self.edit(None,**editInfo)
 
 	def editName(self,name):
 		'''
@@ -568,6 +542,7 @@ class contacts:
 		if name:
 			self.device.type(name)
 			trace("Type Name: %s" % name)
+			view.touch()
 		else:
 			trace("Erase Name")
 		return True
@@ -622,7 +597,6 @@ class contacts:
 					while True:
 						try:
 							self.touch(self.getView(fieldName))
-							sleep(2)
 							break
 						except AttributeError:
 							view2 = self.getView('id/no_id/2',iD=True,dump=False)
@@ -645,8 +619,8 @@ class contacts:
 		@param contactsInfo: information of contacts
 		@type action: str
 		@param action: 'add' or 'update' details
-		@type editInfo: str
-		@param editInfo: collect all need edit information
+		@type editInfo: collecting parameters
+		@param editInfo: valid key value should be 'Name','Phone','Email','Address','Company','Website','Nickname','Notes'
 	
 		@return: True
 		'''
@@ -686,7 +660,7 @@ class contacts:
 		@return: the view of search result if search result is not null, else return False
 		'''
 		trace("start searching...")
-		try:				
+		try:
 			self.getView("Search",True).touch()
 			sleep(2)
 			self.device.type(str)
@@ -715,9 +689,8 @@ class contacts:
 		sortOrView="Sort list by" if sort else "View contact names as"
 		firstOrLast="First name*" if first else "Last name*"
 		try:
-			self.getView(sortOrView).touch()
-			sleep(1)
-			self.getView(firstOrLast,regex=True).touch()
+			self.touch(self.getView(sortOrView))
+			self.touch(self.getView(firstOrLast,regex=True))
 			return True
 		except AttributeError:
 			return False
@@ -732,6 +705,8 @@ class contacts:
 		@param str: specify the search string
 		@type favor: boolean
 		@param favor: add if True
+		
+		@return: boolean
 		'''
 		try:
 			self.search(str).touch()
@@ -742,34 +717,32 @@ class contacts:
 			return False
 		aim, action = ('Add to favorites', 'add') if favor else ('Remove from favorites', 'remov')
 		try:
-			self.getView(aim, cD=True).touch()
+			self.touch(self.getView(aim, cD=True))
 			trace('%s successfully' % aim)
+			return True
 		except AttributeError:
 			trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
-		sleep(3)
-		self.goList()
-		return True
+			return False
+		finally:
+			self.goList()
 
-	def delete(self,kwd = ''):
+	def delete(self,str):
 		'''delete one contact
-		@type kwd: string
-		@param kwd: keyword which contact to be delete, if none,delete first contact
+		@type str: string
+		@param str: keyword which contact to be delete, if none,delete first contact
 		@return: True if operate sucess, False if operate fail.
 		'''
 		if self.isEmpty():
 			trace('Could not find any contact data,no record!')
 			return False
-		find = self.search(kwd) if kwd else self.getView('id/no_id/27',iD=True,dump=False)
+		find = self.search(str) if str else self.getView('id/no_id/27',iD=True,dump=False)
 		try:
-			# delete operate 
 			find.touch()
 			sleep(4)
-			trace('show contact detail information')
 			self.menu()
 			self.scroll(times=3)
 			trace('choose delete contact')
-			self.getView('OK').touch()
-			sleep(3)
+			self.touch(self.getView('OK'))
 			return True
 		except AttributeError:
 			return False
@@ -803,22 +776,28 @@ if __name__ == '__main__':
 			# if 'unknown' == result:
 				# trace('Exception details: ' + details)
 			sleep(5)
-	
-	c.favor('jason')
-	c.favor('jason')
-	c.favor('jason',False)
-	c.favor('jason',False)
-	
+	'''
+	# c.favor('jason')
+	# c.favor('jason')
+	# c.favor('jason',False)
+	# c.favor('jason',False)
+	'''
 	c.editDetails('222',action='add', Website='www')
 	c.editDetails('222',action='update', Website='mmm')
 	c.editDetails('222',action='add', Nickname='nick')
 	c.editDetails('222',action='add', Company='teleca')
 	c.editDetails('222',action='add', Phone='123456789')
 	'''
+	# c.sortAndViewAs(True,True)
+	# c.sortAndViewAs(False,True)
+	# c.sortAndViewAs(True,False)
+	# c.sortAndViewAs(False,False)
+	c.delete(None)
+	c.stop()
 	# c.addContact(name='222')
-	# c.editDetails('222', Name='Jason',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
+	# c.editDetails(None, Name='Jason',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
 	# c.editDetails('7654321', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567',Name='222')
-	c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
-	c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
+	# c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
+	# c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
 	trace('end testing')
 	############################ add contact case Finished ############################
