@@ -56,7 +56,7 @@ trace('code start...')
 
 '''
 
-__version__ = '0.2'
+__version__ = '0.4'
 __all__ = ['trace']
 
 from datetime import datetime
@@ -84,7 +84,7 @@ class trace:
 
 	def trace(self,str):
 		'''add str as log info to logfile'''
-		logInfo=(self.timestamp(self.verbose) + '\t' + str + '\n')
+		logInfo=(self.timestamp(self.verbose) + '\t' + str + '\r')
 		if self.echo:
 			print logInfo
 		f=open(self.logFile,'a+')

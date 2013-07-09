@@ -2,14 +2,20 @@
 REM ==============================================================
 REM Author: Jason Hou
 REM 
-REM Date: 2013/07/07
+REM Date: 2013/07/09
 REM 
-REM Version: 0.2
+REM Version: 0.3
 REM 
 REM Usage: 	this is a starter.
 REM 		double click to run your MainCode through monkeyrunner
 REM 
 REM ************************ CHANGE HISTORY **********************
+REM
+REM VERSION : 0.3 Third Release 09-Jul-13 Jason Hou
+REM REASON : Update implementation
+REM REFERENCE : 
+REM DESCRIPTION : 1. output the runtime info in terminal real time 
+REM					and output exception to recorder.txt
 REM
 REM VERSION : 0.2 Second Release 07-Jul-13 Jason Hou
 REM REASON : Update implementation
@@ -26,13 +32,13 @@ REM
 REM ==============================================================
 REM -------------------------- start -----------------------------
 
-set MainCode=contacts.py
+set MainCode=Main.py
 cd %cd%
 if not exist %cd%\history mkdir history
 echo [Path]>%cd%\config\UserDefine.conf
 echo logPath=%cd%\history>>%cd%\config\UserDefine.conf
 echo Running, please wait!
-monkeyrunner %cd%\%MainCode%>recorder.txt 2>&1
+monkeyrunner %cd%\%MainCode% 2>recorder.txt
 ::echo Completed! Press any key to exit!
 pause
 
