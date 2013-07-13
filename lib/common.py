@@ -2,9 +2,16 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/09
+#Date: 2013/07/10
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 0.2 Second Release 10-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. update start and stop method name;
+#				2. using standard os lib module separator to increase the
+#				adaptability on different OS  
 
 # VERSION : 0.1 First Release 09-Jul-13 Jason Hou
 # REASON : First implementation
@@ -13,11 +20,11 @@
 
 ############################ CHANGE HISTORY ############################
 
-__version__ = '0.1'
+__version__ = '0.2'
 
 import os,sys,re,ConfigParser,datetime
 try:
-	for p in os.environ['PYTHONPATH'].split(';'):
+	for p in os.environ['PYTHONPATH'].split(os.pathsep):
 		if not p in sys.path:
 			sys.path.append(p)
 except:
@@ -30,19 +37,20 @@ from log import trace
 DEBUG = True
 
 nowPath = os.path.dirname(os.path.abspath(__file__))
-rootPath = '\\'.join(nowPath.split('\\')[:-1])
-configPath = rootPath + '\\' + 'config'
+os.chdir(nowPath + os.sep + '..')
+rootPath = os.getcwd()
+configPath = rootPath + os.sep + 'config'
 configName = 'UserDefine.conf'
-userConfigFile = configPath + '\\' + configName
+userConfigFile = configPath + os.sep + configName
 cP = ConfigParser.ConfigParser()
 cP.read(userConfigFile)
 logPath = cP.get('Path','logPath')
 logName = ''.join(re.split('\W+',str(datetime.datetime.now())[:-7])) + '.log'
-logFile = logPath + '\\' + logName
+logFile = logPath + os.sep + logName
 
 mTrace = trace(logFile).trace
 
-class action:
+class action(object):
 	def __init__(self,device,feature,devID='emulator-5554'):
 		'''
 		constructor
@@ -108,7 +116,7 @@ class action:
 		'''
 		self.device.press('KEYCODE_MENU','DOWN_AND_UP')
 		self.trace('Press menu')
-		self.sleep(2)
+		self.sleep(3)
 
 	def scroll(self,times=1,down=True):
 		'''
@@ -134,7 +142,7 @@ class action:
 		self.device.press('KEYCODE_BACK','DOWN_AND_UP')
 		self.trace('Press back')
 
-	def start(self,componentName):
+	def startComponent(self,componentName):
 		'''
 		start activity
 		
@@ -143,8 +151,9 @@ class action:
 		'''
 		self.device.startActivity(component=componentName)
 		self.trace('Start component: %s' % componentName)
+		self.sleep(2)
 
-	def stop(self,package):
+	def stopPackage(self,package):
 		'''
 		stop activity
 		

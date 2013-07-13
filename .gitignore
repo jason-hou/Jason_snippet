@@ -19,3 +19,6 @@
 ############
 recorder.txt
 history
+config/UserDefine.conf
+TestReport.html
+lib/HTMLTestRunner.py

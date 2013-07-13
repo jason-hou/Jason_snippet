@@ -1,29 +1,68 @@
 import os,sys
 try:
-	for p in os.environ['PYTHONPATH'].split(';'):
+	for p in os.environ['PYTHONPATH'].split(os.pathsep):
 		if not p in sys.path:
 			sys.path.append(p)
 except:
 	pass
-
 from com.android.monkeyrunner import MonkeyRunner,MonkeyDevice,MonkeyImage
 from log import trace
 import contacts
+# import HTMLTestRunner
+import unittest
 
-runLog=r'c:\runlog.txt'
-trace=trace(runLog).trace
+# rootPath = os.path.dirname(os.path.abspath(__file__))
+# reportFile = rootPath + os.sep + 'TestReport.html'
 
 device=MonkeyRunner.waitForConnection(5,'emulator-5554')
-trace('=' * 80)
-trace('start testing...')
 c=contacts.contacts(device,'emulator-5554')
-trace('complete init')
 c.start()
-trace('complete contacts activity starting')
+contactTest={
+	'Name':'Tom',
+	'Phone':'12453',
+	'Website':'cctv',
+	'Notes':'test'
+}
 
-c.getCounter()
+class test_demo(unittest.TestCase):
+
+	def test_favor(self):
+		c.favor('apple')
+
+	def test_delete(self):
+		c.delete('jason')
+
+	def test_add(self):
+		c.editDetails(None,**contactTest)
+
+	def test_edit(self):
+		c.editDetails('jason',Name='apple')
+
+
+# if __name__ == '__main__':
+
+suite = unittest.TestLoader().loadTestsFromTestCase(test_demo)
+# testsuite.addTests([unittest.defaultTestLoader.loadTestsFromTestCase(test_class)])
+unittest.TextTestRunner(verbosity=2).run(suite)
+
+# suite=unittest.TestSuite()
+# suite.addTests([unittest.defaultTestLoader.loadTestsFromTestCase(test_demo)])
+# unittest.TextTestRunner(verbosity=2).run(suite)
+'''
+outfile = open(reportFile, "w")
+runner = HTMLTestRunner.HTMLTestRunner(
+		stream=outfile,
+		title='Test Report',
+		description='Test'
+		)
+print 'Now start testing ...'
+runner.run(suite)
+# c.stop()
+print 'Testing completed, press any key to exit!'
+'''
+# c.getCounter()
 # c.editDetails(None, Name='thomson',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
-c.favor('jason')
+# c.favor('jason')
 ############################ add contact case Beginning ############################
 '''
 c.favor('jason1')
@@ -44,8 +83,8 @@ for i in range(5):
 			# trace('Exception details: ' + details)
 		sleep(5)
 '''
-c.getCounter()
-c.favor('jason')
+# c.getCounter()
+# c.favor('jason')
 # c.favor('jason')
 # c.favor('jason',False)
 # c.favor('jason',False)
@@ -60,12 +99,14 @@ c.editDetails('222',action='add', Phone='123456789')
 # c.sortAndViewAs(False,True)
 # c.sortAndViewAs(True,False)
 # c.sortAndViewAs(False,False)
-c.delete(None)
-c.stop()
+# c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
+# c.editDetails('Jason', Name='Jason',Company='symphonyteleca',Nickname='tim',Phone='1234')
+# c.delete(None)
+# c.stop()
 # c.addContact(name='222')
 # c.editDetails(None, Name='Jason',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
 # c.editDetails('7654321', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567',Name='222')
 # c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
 # c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
-trace('end testing')
+# trace('end testing')
 ############################ add contact case Finished ############################

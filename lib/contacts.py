@@ -2,9 +2,14 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/09
+#Date: 2013/07/10
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 2.1 Twenty-first Release 10-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION : 1. use class inheritance instead of importing module
 
 # VERSION : 2.0 Nineteenth Release 09-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -135,7 +140,7 @@
 
 ############################ CHANGE HISTORY ############################
 
-__version__ = '1.9'
+__version__ = '2.1'
 
 import os,sys,ConfigParser
 try:
@@ -152,7 +157,9 @@ package = 'com.android.contacts'
 activity = '.activities.PeopleActivity'
 componentName = package + '/' + activity
 
-class contacts:
+action=common.action
+
+class contacts(action):
 	'''
 	contacts class
 	'''
@@ -167,7 +174,7 @@ class contacts:
 		@type sample: boolean
 		@param sample: whether take snapshot as an sampling
 		'''
-		self.action = common.action(device,'Contacts',devID)
+		action.__init__(self,device,'Contacts',devID)
 		
 		#get the API Level of the connected device
 		API_LEVEL = int(device.getProperty('build.version.sdk'))
@@ -198,18 +205,16 @@ class contacts:
 		'''
 		start the contacts activity and set the startStatus True if contacts is ready.
 		'''
-		self.action.start(componentName)
-		self.action.sleep(2)
+		self.startComponent(componentName)
 		self.startStatus = self.goList()
-		self.action.trace('Contacts is started, checking the contacts status...')
+		self.trace('Contacts is started, checking the contacts status...')
 		self.isReady()
-		self.action.sleep(2)
 
 	def stop(self):
 		'''
 		stop the contacts activity and set the startStatus False
 		'''
-		self.action.stop(package)
+		self.stopPackage(package)
 		self.startStatus = False
 
 	def isReady(self):
@@ -219,13 +224,14 @@ class contacts:
 		@return: True
 		'''
 		while True:
-			view=self.action.getView(self.IsReady)
+			view=self.getView(self.IsReady)
 			if not view:
-				self.action.trace('Contacts is ready')
+				self.trace('Contacts is ready')
+				self.sleep(2)
 				break
 			else:
-				self.action.trace('Contacts is not ready, please wait!')
-				self.action.sleep(4)
+				self.trace('Contacts is not ready, please wait!')
+				self.sleep(4)
 		return True
 
 	def isEmpty(self):
@@ -235,13 +241,13 @@ class contacts:
 		@return: True or False
 		'''
 		self.check()
-		#view=self.action.getView('No contacts.')
-		view=self.action.getView(self.NoContacts)
+		#view=self.getView('No contacts.')
+		view=self.getView(self.NoContacts)
 		if view:
-			self.action.trace('Contacts list is empty')
+			self.trace('Contacts list is empty')
 			return True
 		else:
-			self.action.trace('Contacts list is not empty')
+			self.trace('Contacts list is not empty')
 			return False
 
 	def getCounter(self):
@@ -250,18 +256,17 @@ class contacts:
 		
 		@return: the current contacts counter
 		'''
-		self.goList()
 		if self.isEmpty():
 			self.contactCounter=0
 		else:
 			while True:
 				try:
-					self.contactCounter = int(self.action.getView('\d+ contacts?',regex=True).getText().split()[0])
+					self.contactCounter = int(self.getView('\d+ contacts?',regex=True).getText().split()[0])
 					break
 				except AttributeError:
-					self.action.slide('down')
-					self.action.sleep(1)
-		self.action.trace('current contacts counter is %d' % self.contactCounter)
+					self.slide('down')
+					self.sleep(1)
+		self.trace('current contacts counter is %d' % self.contactCounter)
 		return self.contactCounter
 
 	def goList(self):
@@ -272,12 +277,13 @@ class contacts:
 		'''
 		while True:
 			try:
-				self.action.getView(self.AllContacts,cD=True).touch()
+				self.getView(self.AllContacts,cD=True).touch()
+				self.sleep(3)
 				break
 			except AttributeError:
-				self.action.back()
-				self.action.sleep(3)
-		self.action.trace('Goto contacts list view')
+				self.back()
+				self.sleep(3)
+		self.trace('Goto contacts list view')
 		return True
 
 	def goEdit(self,searchInfo=None):
@@ -296,24 +302,24 @@ class contacts:
 				self.search(searchInfo).touch()
 			except AttributeError:
 				raise SyntaxError('No such contact info: %s to edit' % searchInfo)
-			self.action.sleep(3)
-			self.action.menu()
-			self.action.scroll(times=1)
+			self.sleep(3)
+			self.menu()
+			self.scroll(1)
 		else:
 			try:
-				self.action.getView(self.AddNew,cD=True,dump=False).touch()
-				self.action.trace('Touch ' + self.AddNew)
-				self.action.sleep(5)
+				self.getView(self.AddNew,cD=True,dump=False).touch()
+				self.trace('Touch ' + self.AddNew)
+				self.sleep(5)
 				return True
 			except AttributeError: pass
 			try:
-				self.action.getView(self.CreateNewContact,dump=False).touch()
-				self.action.trace('Touch "Create a new contact"')
-				self.action.sleep(5)
-				#self.action.getView('Keep local').touch()
-				self.action.touch(self.action.getView(self.KeepLocal))
-				self.action.trace('Select "Keep local"' )
-				self.action.sleep(2)
+				self.getView(self.CreateNewContact,dump=False).touch()
+				self.trace('Touch "Create a new contact"')
+				self.sleep(5)
+				#self.getView('Keep local').touch()
+				self.touch(self.getView(self.KeepLocal))
+				self.trace('Select "Keep local"' )
+				self.sleep(2)
 			except AttributeError: pass
 		return True
 
@@ -324,7 +330,7 @@ class contacts:
 		@return: True
 		'''
 		if not self.startStatus:
-			self.action.trace("Wrong code! please start contacts firstly in you code")
+			self.trace("Wrong code! please start contacts firstly in you code")
 			raise SyntaxError('Contacts should be start firstly!')
 		return True
 
@@ -348,15 +354,15 @@ class contacts:
 		
 		@return: True
 		'''
-		view = self.action.getView('id/no_id/27',iD=True)
-		self.action.wipe(view)
+		view = self.getView('id/no_id/27',iD=True)
+		self.wipe(view)
 		if name:
-			self.action.type(name)
-			self.action.trace("Type Name: %s" % name)
-			self.action.sleep(2)
-			self.action.touch(view)
+			self.type(name)
+			self.trace("Type Name: %s" % name)
+			self.sleep(2)
+			self.touch(view)
 		else:
-			self.action.trace("Erase Name")
+			self.trace("Erase Name")
 		return True
 
 	def editCompany(self,company):
@@ -368,16 +374,16 @@ class contacts:
 		@return: True
 		'''
 		try:
-			self.action.getView('Add organization').touch()
-			self.action.sleep(1)
+			self.getView('Add organization').touch()
+			self.sleep(1)
 		except AttributeError:
-			view = self.action.getView('id/no_id/42',iD=True)
-			self.action.wipe(view)
+			view = self.getView('id/no_id/42',iD=True)
+			self.wipe(view)
 		if company:
-			self.action.type(company)
-			self.action.trace('Type Company: %s' % company)
+			self.type(company)
+			self.trace('Type Company: %s' % company)
 		else:
-			self.action.trace('Erase Company')
+			self.trace('Erase Company')
 		return True
 
 	def editOther(self,fieldName,content):
@@ -393,36 +399,36 @@ class contacts:
 		'''
 		while True:
 			try:
-				viewId = self.action.getView(fieldName).getId()
+				viewId = self.getView(fieldName).getId()
 				view2Id = viewId[:-2]+str(int(viewId[-2:])+6)
-				view2=self.action.getView(view2Id,iD=True)
-				self.action.wipe(view2)
+				view2=self.getView(view2Id,iD=True)
+				self.wipe(view2)
 				if content:
-					self.action.type(content)
-					self.action.trace('Type %s: %s' %(fieldName,content))
+					self.type(content)
+					self.trace('Type %s: %s' %(fieldName,content))
 				else:
-					self.action.trace('Erase %s' % fieldName)
+					self.trace('Erase %s' % fieldName)
 				break
 			except AttributeError:
 				try:
-					self.action.getView('Add another field').touch()
-					self.action.sleep(1)
+					self.getView('Add another field').touch()
+					self.sleep(1)
 					while True:
 						try:
-							self.action.touch(self.action.getView(fieldName))
+							self.touch(self.getView(fieldName))
 							break
 						except AttributeError:
-							view2 = self.action.getView('id/no_id/2',iD=True,dump=False)
-							self.action.slide('up',view2)
-							self.action.sleep(1)
+							view2 = self.getView('id/no_id/2',iD=True,dump=False)
+							self.slide('up',view2)
+							self.sleep(1)
 					if content:
-						self.action.type(content)
-						self.action.trace('Type %s: %s' %(fieldName,content))
+						self.type(content)
+						self.trace('Type %s: %s' %(fieldName,content))
 					break
 				except AttributeError:
 					pass
-			self.action.slide('up')
-			self.action.sleep(2)
+			self.slide('up')
+			self.sleep(2)
 		return True
 
 	def editDetails(self,contactsInfo,**editInfo):
@@ -454,16 +460,16 @@ class contacts:
 			keyNumber = editInfo.__len__()
 			for updateField in editInfo:
 				self.editOther(updateField, editInfo[updateField])
-				self.action.getView('Done').touch()
-				self.action.trace('Click Done')
+				self.getView('Done').touch()
+				self.trace('Click Done')
 				keyNumber -= 1
-				self.action.trace('KeyNumber: %i' % keyNumber)
+				self.trace('KeyNumber: %i' % keyNumber)
 				if keyNumber:
-					self.action.sleep(3)
-					self.action.menu()
-					self.action.scroll(times=1)
+					self.sleep(3)
+					self.menu()
+					self.scroll(1)
 		finally:
-			self.action.sleep(3)
+			self.sleep(3)
 			self.goList()
 
 	def search(self,str):
@@ -475,20 +481,20 @@ class contacts:
 		
 		@return: the view of search result if search result is not null, else return False
 		'''
-		self.action.trace("start searching...")
+		self.trace("Start searching...")
 		try:
-			self.action.getView("Search",True).touch()
-			self.action.sleep(2)
-			self.action.type(str)
-			self.action.trace("search keyword is: "+str)
+			self.getView("Search",True).touch()
+			self.sleep(2)
+			self.type(str)
+			self.trace("Search keyword is: "+str)
 		except AttributeError:
 			if self.isEmpty():
-				self.action.trace("No contacts exist")
+				self.trace("No contacts exist")
 			else:
-				self.action.trace("No contacts searched")
+				self.trace("No contacts searched")
 			return False
 		#the id of 1st search result is always 27
-		return self.action.getView("id/no_id/27",iD=True)
+		return self.getView("id/no_id/27",iD=True)
 
 	def sortAndViewAs(self, sort=True, first=True):
 		'''
@@ -501,14 +507,14 @@ class contacts:
 		
 		@return: boolean
 		'''
-		self.action.trace("start sorting...")
-		self.action.menu()
-		self.action.scroll(times=4)
+		self.trace("Start sorting...")
+		self.menu()
+		self.scroll(4)
 		sortOrView="Sort list by" if sort else "View contact names as"
 		firstOrLast="First name*" if first else "Last name*"
 		try:
-			self.action.touch(self.action.getView(sortOrView))
-			self.action.touch(self.action.getView(firstOrLast,regex=True))
+			self.touch(self.getView(sortOrView))
+			self.touch(self.getView(firstOrLast,regex=True))
 			return True
 		except AttributeError:
 			return False
@@ -528,18 +534,18 @@ class contacts:
 		'''
 		try:
 			self.search(str).touch()
-			self.action.sleep(3)
+			self.sleep(3)
 		except AttributeError:
-			self.action.trace('no matched contact found, operation failed!')
+			self.trace('No matched contact found, operation failed!')
 			self.goList()
 			return False
 		aim, action = ('Add to favorites', 'add') if favor else ('Remove from favorites', 'remov')
 		try:
-			self.action.touch(self.action.getView(aim, cD=True))
-			self.action.trace('%s successfully' % aim)
+			self.touch(self.getView(aim, cD=True))
+			self.trace('%s successfully' % aim)
 			return True
 		except AttributeError:
-			self.action.trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
+			self.trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
 			return False
 		finally:
 			self.goList()
@@ -551,16 +557,16 @@ class contacts:
 		@return: True if operate sucess, False if operate fail.
 		'''
 		if self.isEmpty():
-			self.action.trace('Could not find any contact data,no record!')
+			self.trace('Could not find any contact data,no record!')
 			return False
-		find = self.search(str) if str else self.action.getView('id/no_id/27',iD=True,dump=False)
+		find = self.search(str) if str else self.getView('id/no_id/27',iD=True,dump=False)
 		try:
 			find.touch()
-			self.action.sleep(4)
-			self.action.menu()
-			self.action.scroll(times=3)
-			self.action.trace('choose delete contact')
-			self.action.touch(self.action.getView('OK'))
+			self.sleep(4)
+			self.menu()
+			self.scroll(3)
+			self.trace('Choose delete contact')
+			self.touch(self.getView('OK'))
 			return True
 		except AttributeError:
 			return False
@@ -569,15 +575,13 @@ class contacts:
 
 if __name__ == '__main__':
 	device=MonkeyRunner.waitForConnection(5,'emulator-5554')
-	# trace('=' * 80)
-	# trace('start testing...')
 	c=contacts(device,'emulator-5554')
-	# trace('complete init')
 	c.start()
+	c.trace('pass')
 	# trace('complete contacts activity starting')
 	############################ add contact case Beginning ############################
 	
-	c.favor('jason1')
+	# c.favor('jason1')
 	'''
 	# for i in range(5):
 		result='failed'
@@ -614,11 +618,12 @@ if __name__ == '__main__':
 	c.delete(None)
 	c.stop()
 	'''
-	c.addContact(Name='jason',Website='dotcom')
+	# c.addContact(Name='jason',Website='dotcom')
 	# c.editDetails(None, Name='Jason',Website='www',Nickname='tom',Company='teleca',Phone='7654321')
 	# c.editDetails('7654321', Website='wap',Nickname='jerry',Company='symphonyteleca',Phone='1234567',Name='222')
-	c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
-	c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
+	# c.editDetails('Jason', Name=None,Company=None,Phone='1234',Nickname=None)
+	# c.editDetails('123', Name='Jason',Company='symphonyteleca',Phone=None)
 	c.stop()
 	# trace('end testing')
 	############################ add contact case Finished ############################
+	

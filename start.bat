@@ -1,15 +1,22 @@
 @echo off
+setlocal enabledelayedexpansion
 REM ==============================================================
 REM Author: Jason Hou
 REM 
-REM Date: 2013/07/09
+REM Date: 2013/07/13
 REM 
-REM Version: 0.3
+REM Version: 0.4
 REM 
 REM Usage: 	this is a starter.
 REM 		double click to run your MainCode through monkeyrunner
 REM 
 REM ************************ CHANGE HISTORY **********************
+REM
+REM VERSION : 0.4 Fourth Release 13-Jul-13 Jason Hou
+REM REASON : Update implementation
+REM REFERENCE : 
+REM DESCRIPTION : 1. if not exist UserDefine.conf, create it, if not
+REM					update logPath field
 REM
 REM VERSION : 0.3 Third Release 09-Jul-13 Jason Hou
 REM REASON : Update implementation
@@ -32,14 +39,30 @@ REM
 REM ==============================================================
 REM -------------------------- start -----------------------------
 
+
+REM ************************User Define Section********************
 set MainCode=Main.py
-cd %cd%
+REM ************************User Define Section********************
+
+
 if not exist %cd%\history mkdir history
-echo [Path]>%cd%\config\UserDefine.conf
-echo logPath=%cd%\history>>%cd%\config\UserDefine.conf
+set LOGPATH=logPath=%cd%\history
+set OUTPATH=%cd%\config
+set OUTNAME=UserDefine.conf
+set OUTFILE=%OUTPATH%\%OUTNAME%
+if not exist %OUTFILE% (
+	echo [Path]>%OUTFILE%
+	echo %LOGPATH%>>%OUTFILE%
+) else (
+	mv %OUTFILE% %OUTFILE%.bak
+	for /f "delims=" %%N in (%OUTFILE%.bak) do (
+		set line=%%N
+		if "!line:~0,8!"=="logPath=" set line=%LOGPATH%
+		echo !line!>>%OUTFILE%
+	)
+)
+del %OUTFILE%.bak
 echo Running, please wait!
 monkeyrunner %cd%\%MainCode% 2>recorder.txt
-::echo Completed! Press any key to exit!
-pause
 
 REM --------------------------- end ------------------------------
