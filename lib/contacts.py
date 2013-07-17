@@ -2,9 +2,15 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/10
+#Date: 2013/07/17
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 2.2 Twenty-second Release 17-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION	1. add snapshot operation before raising some exception;
+#				2. update favor method
 
 # VERSION : 2.1 Twenty-first Release 10-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -140,7 +146,7 @@
 
 ############################ CHANGE HISTORY ############################
 
-__version__ = '2.1'
+__version__ = '2.2'
 
 import os,sys,ConfigParser
 try:
