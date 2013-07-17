@@ -51,14 +51,14 @@ configName = 'UserDefine.conf'
 userConfigFile = configPath + os.sep + configName
 cP = ConfigParser.ConfigParser()
 cP.read(userConfigFile)
-logPath = cP.get('Path','logPath')
-logName = snapTime(0) + '.log'
-logFile = logPath + os.sep + logName
-
-mTrace = trace(logFile).trace
 
 def snapTime(start=8):
 	return ''.join(re.split('\W+',str(datetime.datetime.now())[start:-7]))
+
+logPath = cP.get('Path','logPath')
+logName = snapTime(0) + '.log'
+logFile = logPath + os.sep + logName
+mTrace = trace(logFile).trace
 
 class action(object):
 	def __init__(self,device,feature,devID='emulator-5554'):
