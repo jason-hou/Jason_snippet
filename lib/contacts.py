@@ -301,6 +301,8 @@ class contacts(action):
 			try:
 				self.search(searchInfo).touch()
 			except AttributeError:
+				self.trace('No matched contact found, operation failed!')
+				self.snapshot('NoMatched')
 				raise SyntaxError('No such contact info: %s to edit' % searchInfo)
 			self.sleep(3)
 			self.menu()
@@ -532,20 +534,21 @@ class contacts(action):
 		
 		@return: boolean
 		'''
+		aim, action = ('Add to favorites', 'add') if favor else ('Remove from favorites', 'remov')
 		try:
 			self.search(str).touch()
 			self.sleep(3)
+			try:
+				self.touch(self.getView(aim, cD=True))
+				self.trace('%s successfully' % aim)
+				return True
+			except AttributeError:
+				self.trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
+				return False
 		except AttributeError:
 			self.trace('No matched contact found, operation failed!')
-			self.goList()
-			return False
-		aim, action = ('Add to favorites', 'add') if favor else ('Remove from favorites', 'remov')
-		try:
-			self.touch(self.getView(aim, cD=True))
-			self.trace('%s successfully' % aim)
-			return True
-		except AttributeError:
-			self.trace('%s has been %sed in favorites, not have to %s repeatedly' % (str, action, action))
+			self.snapshot('NoMatchedToFavor')
+			raise SyntaxError('No such contact info: %s to favor' % str)
 			return False
 		finally:
 			self.goList()
@@ -557,7 +560,9 @@ class contacts(action):
 		@return: True if operate sucess, False if operate fail.
 		'''
 		if self.isEmpty():
-			self.trace('Could not find any contact data,no record!')
+			self.trace('Empty contact list, operation failed!')
+			self.snapshot('NoMatchedToDelete')
+			raise SyntaxError('Could not find any contact data,no record!')
 			return False
 		find = self.search(str) if str else self.getView('id/no_id/27',iD=True,dump=False)
 		try:
@@ -569,6 +574,9 @@ class contacts(action):
 			self.touch(self.getView('OK'))
 			return True
 		except AttributeError:
+			self.trace('No matched contact found, operation failed!')
+			self.snapshot('NoMatchedToDelete')
+			raise SyntaxError('No such contact info: %s to delete' % str)
 			return False
 		finally:
 			self.goList()

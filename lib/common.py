@@ -2,9 +2,16 @@
 
 #Author: Jason Hou
 
-#Date: 2013/07/10
+#Date: 2013/07/17
 
 ############################ CHANGE HISTORY ############################
+
+# VERSION : 0.3 Third Release 17-Jul-13 Jason Hou
+# REASON : Update implementation
+# REFERENCE : 
+# DESCRIPTION 	1. new add snapTime function;
+#				2. fix snapshot region bug;
+#				3. update snapshot method
 
 # VERSION : 0.2 Second Release 10-Jul-13 Jason Hou
 # REASON : Update implementation
@@ -20,7 +27,7 @@
 
 ############################ CHANGE HISTORY ############################
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 import os,sys,re,ConfigParser,datetime
 try:
@@ -45,10 +52,13 @@ userConfigFile = configPath + os.sep + configName
 cP = ConfigParser.ConfigParser()
 cP.read(userConfigFile)
 logPath = cP.get('Path','logPath')
-logName = ''.join(re.split('\W+',str(datetime.datetime.now())[:-7])) + '.log'
+logName = snapTime(0) + '.log'
 logFile = logPath + os.sep + logName
 
 mTrace = trace(logFile).trace
+
+def snapTime(start=8):
+	return ''.join(re.split('\W+',str(datetime.datetime.now())[start:-7]))
 
 class action(object):
 	def __init__(self,device,feature,devID='emulator-5554'):
@@ -62,8 +72,6 @@ class action(object):
 		@type devID: str
 		@param serialno: the serial number of the device or emulator to connect to
 		'''
-		if not device:
-			raise Exception('Cannot connect to device')
 		self.device = device
 		self.feature = feature
 		
@@ -71,11 +79,11 @@ class action(object):
 		width = int(device.getProperty('display.width'))
 		height = int(device.getProperty('display.height'))
 		density = device.getProperty('display.density')
-		if density == .75:
+		if density == u'.75':
 			statusBarHeight = 19
-		elif density == 1.5:
+		elif density == u'1.5':
 			statusBarHeight = 38
-		elif density == 2.0:
+		elif density == u'2.0':
 			statusBarHeight = 50
 		else:
 			statusBarHeight = 25
@@ -267,7 +275,7 @@ class action(object):
 		
 		@return: snapshot object
 		'''
-		snapName = title + '.png' 
+		snapName = title + '_' + snapTime() + '.png' 
 		snapFolder = 'snapshot'
 		os.system('if not exist %s\\%s mkdir %s\\%s' % (logPath, snapFolder, logPath, snapFolder))
 		snapFile = logPath + '\\' + snapFolder + '\\' + snapName
